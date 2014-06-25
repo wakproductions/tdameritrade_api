@@ -2,6 +2,7 @@ require 'net/http'
 require 'openssl'
 require 'tmpdir'
 require 'bindata'
+require 'httparty'
 
 module TDAmeritradeApi
   class PriceHistoryHeader < BinData::Record
@@ -61,21 +62,14 @@ module TDAmeritradeApi
     def get_daily_price_history(symbol, begin_date="20010102", end_date=todays_date)
       begin
         uri = URI.parse("https://apis.tdameritrade.com/apps/100/PriceHistory?source=#{@source_id}&requestidentifiertype=SYMBOL&requestvalue=#{symbol}&intervaltype=DAILY&intervalduration=1&startdate=#{begin_date}&enddate=#{end_date}")
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = true
-        http.read_timeout = 10
-        request = Net::HTTP::Get.new uri
-        request['Set-Cookie'] = "JSESSIONID=#{@session_id}"
-        puts "sending request, #{http.read_timeout}"
-        response = http.request request
-        puts response
-        puts "request received"
+        response = HTTParty.get(uri, headers: {'Set-Cookie' => "JSESSIONID=#{@session_id}"})
+        puts response.code
       rescue
         puts 'error downloading in get_daily_price_history'
       end
 
-      if response.code != "200"
-        return [{ :error => "#{response.code}: #{response.body.encode('utf-8')}"}]
+      if response.code != 200
+        return [{ :error => "#{response.code}: #{response.body}"}]
       end
 
 
@@ -127,6 +121,8 @@ module TDAmeritradeApi
       request = Net::HTTP::Get.new uri
       request['Set-Cookie'] = "JSESSIONID=#{@session_id}"
       response = http.request request
+
+
 
       if response.code != "200"
         return [{ :error => "#{response.code}: #{response.body.encode('utf-8')}"}]
