@@ -2,34 +2,13 @@ require 'net/http'
 require 'openssl'
 require 'tmpdir'
 require 'bindata'
+require 'tdameritrade_api/bindata_types'
 require 'httparty'
 
 module TDAmeritradeApi
-  class PriceHistoryHeader < BinData::Record
-    int32be    :symbol_count
-    int16be    :symbol_length
-    string     :symbol, :read_length=>:symbol_length
-    int8be     :error_code
-    int16be    :error_length, :onlyif => :has_error?
-    string     :error_text, :onlyif => :has_error?, :length=>:error_length
-    int32be    :bar_count
-
-    def has_error?
-      error_code != 0
-    end
-  end
-
-  class PriceHistoryBarRaw < BinData::Record
-    float_be    :close   # may have to round this on a 64 bit system
-    float_be    :high    # may have to round this on a 64 bit system
-    float_be    :low     # may have to round this on a 64 bit system
-    float_be    :open    # may have to round this on a 64 bit system
-    float_be    :volume  # in 100s
-    int64be     :timestampint # number of milliseconds - needs to be converted to seconds for Ruby
-  end
-
-
   class Client
+    include BinDataTypes
+
     attr_accessor :session_id, :source_id, :user_id, :password
 
     def initialize
@@ -47,8 +26,7 @@ module TDAmeritradeApi
       request.add_field('Content-Type', 'application/x-www-form-urlencoded')
       request.body = "userid=#{@user_id}&password=#{@password}&source=#{@source_id}&version=1.0.0"
       result = http.request(request)
-      puts result
-      puts result.body
+      #puts result.body
 
       login_result = result.body.scan(/<result>(.*)<\/result>/).first.first
       login_result = login_result == "OK" ? true : false
@@ -62,10 +40,11 @@ module TDAmeritradeApi
     def get_daily_price_history(symbol, begin_date="20010102", end_date=todays_date)
       begin
         uri = URI.parse("https://apis.tdameritrade.com/apps/100/PriceHistory?source=#{@source_id}&requestidentifiertype=SYMBOL&requestvalue=#{symbol}&intervaltype=DAILY&intervalduration=1&startdate=#{begin_date}&enddate=#{end_date}")
-        response = HTTParty.get(uri, headers: {'Set-Cookie' => "JSESSIONID=#{@session_id}"})
-        puts response.code
-      rescue
-        puts 'error downloading in get_daily_price_history'
+        response = HTTParty.get(uri, headers: {'Set-Cookie' => "JSESSIONID=#{@session_id}"}, timeout: 10)
+      rescue SystemExit, Interrupt
+        raise # so that Ctrl+C quits the program
+      rescue Exception => e
+        puts "error downloading in get_daily_price_history - #{e.message}"
       end
 
       if response.code != 200
@@ -95,7 +74,7 @@ module TDAmeritradeApi
             high: bar.high.round(2),
             low: bar.low.round(2),
             close: bar.close.round(2),
-            volume: bar.volume.round(2),
+            volume: bar.volume.round(2), # volume is presented in 100's, per TD Ameritrade API spec
             timestamp: Time.at(bar.timestampint/1000),
             interval: :day
         }
