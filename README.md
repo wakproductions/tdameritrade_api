@@ -16,6 +16,7 @@ of the API. See the /vendor/docs folder for more details on the overall API.
 ## Setup
 
 To use this, you need to have 3 environment variables set:
+
     TDAMERITRADE_SOURCE_KEY - this is given to you by TD Ameritrade
     TDAMERITRADE_USER_ID    - your username to connect to TD Ameritrade
     TDAMERITRADE_PASSWORD   - your account password for TD Ameritrade
@@ -39,8 +40,9 @@ call the methods you need.
 
 The only API features really supported right now are the ability to capture real time quotes and
 price history for a given security
-#login
-#get_price_history
-#get_quote
-#get_daily_price_history
-#get_minute_price_history
+
+    #login
+    #get_price_history
+    #get_quote
+    #get_daily_price_history
+    #get_minute_price_history
