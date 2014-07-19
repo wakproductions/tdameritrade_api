@@ -1,4 +1,4 @@
-# TDAmeritradeApi (alpha)
+# TD Ameritrade API gem for Ruby (alpha)
 
 This is a gem for connecting to the TD Ameritrade API.
 
@@ -32,9 +32,10 @@ call the methods you need.
     #=> true
 
     c.get_price_history('MSFT', intervaltype: :minute, intervalduration: 15, periodtype: :day, period: 10)
-    => [{:open=>41.75, :high=>41.87, :low=>41.71, :close=>41.85, :volume=>17955.3, :timestamp=>2014-07-07
-       09:30:00 -0400, :interval=>:day}, {:open=>41.85, :high=>41.92, :low=>41.84, :close=>41.9, :volume=>7380.78,
-       :timestamp=>2014-07-07 09:45:00 -0400, :interval=>:day},...  a long hash array of the price candles]
+    #=> [{:open=>41.75, :high=>41.87, :low=>41.71, :close=>41.85, :volume=>17955.3, :timestamp=>2014-07-07
+       09:30:00 -0400, :interval=>:day}, {:open=>41.85, :high=>41.92, :low=>41.84, :close=>41.9,
+       :volume=>7380.78, :timestamp=>2014-07-07 09:45:00 -0400, :interval=>:day},...  a long hash array of
+       the price candles]
 
 ## Currently Supported Methods
 
