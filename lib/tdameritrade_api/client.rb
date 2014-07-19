@@ -2,14 +2,25 @@ require 'net/http'
 require 'openssl'
 require 'tmpdir'
 require 'bindata'
-require 'tdameritrade_api/bindata_types'
 require 'httparty'
+require 'tdameritrade_api/bindata_types'
+require 'tdameritrade_api/exception'
 
 module TDAmeritradeApi
+  class Date
+    def to_tdameritrade_s
+      self.strftime('%Y%m%d')
+    end
+  end
+
   class Client
     include BinDataTypes
 
     attr_accessor :session_id, :source_id, :user_id, :password
+
+    PRICE_HISTORY_URL='https://apis.tdameritrade.com/apps/100/PriceHistory'
+    INTERVAL_TYPE=[:minute, :daily, :weekly, :monthly]
+    PERIOD_TYPE=[:day, :month, :year, :ytd]
 
     def initialize
       self.source_id=ENV['TDAMERITRADE_SOURCE_KEY']
@@ -21,7 +32,6 @@ module TDAmeritradeApi
       uri = URI.parse("https://apis.tdameritrade.com/apps/100/LogIn?source=#{@source_id}&version=1.0.0")
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true
-      #http.verify_mode = OpenSSL::SSL::VERIFY_NONE  # this was in a code sample. do I really need this line?
       request = Net::HTTP::Post.new(uri.path)
       request.add_field('Content-Type', 'application/x-www-form-urlencoded')
       request.body = "userid=#{@user_id}&password=#{@password}&source=#{@source_id}&version=1.0.0"
@@ -37,25 +47,34 @@ module TDAmeritradeApi
       login_result
     end
 
-    def get_daily_price_history(symbol, begin_date="20010102", end_date=todays_date)
-      begin
-        uri = URI.parse("https://apis.tdameritrade.com/apps/100/PriceHistory?source=#{@source_id}&requestidentifiertype=SYMBOL&requestvalue=#{symbol}&intervaltype=DAILY&intervalduration=1&startdate=#{begin_date}&enddate=#{end_date}")
-        response = HTTParty.get(uri, headers: {'Set-Cookie' => "JSESSIONID=#{@session_id}"}, timeout: 10)
-      rescue SystemExit, Interrupt
-        raise # so that Ctrl+C quits the program
-      rescue Exception => e
-        puts "error downloading in get_daily_price_history - #{e.message}"
-      end
+    # +get_price_history+ allows you to send a price history request. For now it can only accommodate one
+    # symbol at a time. +options+ may contain any of the following params outlined in the API docs
+    # * periodtype: (:day, :month, :year, :ytd)
+    # * period: number of periods for which data is returned
+    # * intervaltype (:minute, :daily, :weekly, :monthly)
+    # * intervalduration
+    # * startdate
+    # * enddate
+    # * extended: true/false
+    def get_price_history(symbol, options={})
+      # TODO: allow multiple symbols by allowing user to pass and array of strings
+      # TODO: change this around so that it does not need a temporary file buffer and can handle the processing in memory
+      validate_price_history_options options
+      request_params = build_price_history_request_params(symbol, options)
 
+      uri = URI.parse PRICE_HISTORY_URL
+      uri.query = URI.encode_www_form(request_params)
+      #puts uri
+
+      response = HTTParty.get(uri, headers: {'Set-Cookie' => "JSESSIONID=#{@session_id}"}, timeout: 10)
       if response.code != 200
-        return [{ :error => "#{response.code}: #{response.body}"}]
+        raise TDAmeritradeApiError, "HTTP response #{response.code}: #{response.body}"
       end
-
 
       tmp_file=File.join(Dir.tmpdir, "daily_prices.binary")
-      download_file = open(tmp_file, 'wb')
-      download_file.write(response.body)
-      download_file.close
+      w = open(tmp_file, 'wb')
+      w.write(response.body)
+      w.close
       rd = open(tmp_file, 'rb')
 
       header = PriceHistoryHeader.read(rd)
@@ -82,8 +101,19 @@ module TDAmeritradeApi
       end
 
       prices
+
+    rescue Exception => e
+      raise TDAmeritradeApiError, "error in get_price_history() - #{e.message}"
     end
 
+    # +get_daily_price_history+ is a shortcut for +get_price_history()+ for getting a series of daily price candles
+    # It adds convenience because you can just specify a begin_date and end_date rather than all of the
+    # TDAmeritrade API parameters.
+    def get_daily_price_history(symbol, start_date="20010102", end_date=todays_date)
+      get_price_history(symbol, intervaltype: :daily, intervalduration: 1, startdate: start_date, enddate: end_date)
+    end
+
+    # +get_minute_price_history+ will soon be a legacy function. use +get_price_history+ instead
     def get_minute_price_history(symbol, interval={})
       if interval.has_key?(:days_back) then
         # for it to get today's data, you have to set the enddate parameter to today
@@ -215,6 +245,26 @@ module TDAmeritradeApi
       DateTime.parse(date_string)
     rescue
       0
+    end
+
+    def validate_price_history_options(options)
+      if options.has_key?(:intervaltype) && INTERVAL_TYPE.index(options[:intervaltype]).nil?
+        raise TDAmeritradeApiError, "Invalid price history option for intervaltype: #{options[:intervaltype]}"
+      end
+
+      if options.has_key?(:periodtype) && PERIOD_TYPE.index(options[:periodtype]).nil?
+        raise TDAmeritradeApiError, "Invalid price history option for periodtype: #{options[:periodtype]}"
+      end
+
+    end
+
+    def build_price_history_request_params(symbol, options)
+      req = {source: @source_id, requestidentifiertype: 'SYMBOL', requestvalue: symbol}.merge(options)
+      req[:startdate]=req[:startdate].to_tdameritrade_s if req.has_key?(:startdate) && req[:startdate].is_a?(Date)
+      req[:enddate]=req[:enddate].to_tdameritrade_s if req.has_key?(:enddate) && req[:enddate].is_a?(Date)
+      req[:intervaltype]=req[:intervaltype].to_s.upcase if req[:intervaltype]
+      req[:periodtype]=req[:periodtype].to_s.upcase
+      req
     end
 
   end
