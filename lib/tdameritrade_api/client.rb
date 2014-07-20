@@ -103,7 +103,7 @@ module TDAmeritradeApi
       prices
 
     rescue Exception => e
-      raise TDAmeritradeApiError, "error in get_price_history() - #{e.message}"
+      raise TDAmeritradeApiError, "error in get_price_history() - #{e.message}" if !e.is_ctrl_c_exception?
     end
 
     # +get_daily_price_history+ is a shortcut for +get_price_history()+ for getting a series of daily price candles
