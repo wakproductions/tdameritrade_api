@@ -20,6 +20,13 @@ describe TDAmeritradeApi::Client do
     validate_price_bar(result.first)
   end
 
+  it "should retrieve a date range of data" do
+    result = client.get_price_history(ticker_symbol, intervaltype: :daily, intervalduration: 1, startdate: Date.new(2014,7,22), enddate: Date.new(2014,7,25))
+    expect(result).to be_a Array
+    expect(result.length).to eq(4) # 13 half hour periods in a trading day (not including extended hours) times 2
+    validate_price_bar(result.first)
+  end
+
   it "should be able to get recent daily price history using get_daily_price_history" do
     result = client.get_daily_price_history ticker_symbol, '20140707', '20140707'
     #=> [{:open=>14.88, :high=>15.58, :low=>14.65, :close=>14.85, :volume=>36713.1, :timestamp=>2014-07-07 00:00:00 -0400, :interval=>:day}]

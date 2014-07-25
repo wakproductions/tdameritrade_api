@@ -1,0 +1,3 @@
+Some tests of the API using curl
+
+curl -b "JSESSIONID=9D6D4732512988AB9BB9E0745D3097ED.OFzciMbhOJfVXUlMIniv3g" -d "source=___&requestidentifiertype=SYMBOL&requestvalue=KNDI&intervaltype=DAILY&intervalduration=1&startdate=20140711" https://apis.tdameritrade.com/apps/100/PriceHistory

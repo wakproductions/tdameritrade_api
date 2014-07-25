@@ -11,9 +11,9 @@ module TDAmeritradeApi
 
       uri = URI.parse GET_WATCHLISTS_URL
       uri.query = URI.encode_www_form(request_params)
-      #puts uri
+      puts uri
 
-      response = HTTParty.get(uri, headers: {'Set-Cookie' => "JSESSIONID=#{@session_id}"}, timeout: 10)
+      response = HTTParty.get(uri, headers: {'Cookie' => "JSESSIONID=#{@session_id}"}, timeout: 10)
       if response.code != 200
         raise TDAmeritradeApiError, "HTTP response #{response.code}: #{response.body}"
       end

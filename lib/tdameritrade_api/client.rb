@@ -62,7 +62,7 @@ module TDAmeritradeApi
       uri = URI.parse PRICE_HISTORY_URL
       uri.query = URI.encode_www_form(request_params)
 
-      response = HTTParty.get(uri, headers: {'Set-Cookie' => "JSESSIONID=#{@session_id}"}, timeout: 10)
+      response = HTTParty.get(uri, headers: {'Cookie' => "JSESSIONID=#{@session_id}"}, timeout: 10)
       if response.code != 200
         raise TDAmeritradeApiError, "HTTP response #{response.code}: #{response.body}"
       end
