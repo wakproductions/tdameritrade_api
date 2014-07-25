@@ -3,18 +3,15 @@ require 'openssl'
 require 'tmpdir'
 require 'bindata'
 require 'httparty'
+require 'date'
 require 'tdameritrade_api/bindata_types'
 require 'tdameritrade_api/exception'
+require 'tdameritrade_api/watchlist'
 
 module TDAmeritradeApi
-  class Date
-    def to_tdameritrade_s
-      self.strftime('%Y%m%d')
-    end
-  end
-
   class Client
     include BinDataTypes
+    include Watchlist
 
     attr_accessor :session_id, :source_id, :user_id, :password
 
@@ -64,7 +61,6 @@ module TDAmeritradeApi
 
       uri = URI.parse PRICE_HISTORY_URL
       uri.query = URI.encode_www_form(request_params)
-      #puts uri
 
       response = HTTParty.get(uri, headers: {'Set-Cookie' => "JSESSIONID=#{@session_id}"}, timeout: 10)
       if response.code != 200
@@ -109,7 +105,7 @@ module TDAmeritradeApi
     # +get_daily_price_history+ is a shortcut for +get_price_history()+ for getting a series of daily price candles
     # It adds convenience because you can just specify a begin_date and end_date rather than all of the
     # TDAmeritrade API parameters.
-    def get_daily_price_history(symbol, start_date="20010102", end_date=todays_date)
+    def get_daily_price_history(symbol, start_date=Date.new(2001,1,2), end_date=todays_date)
       get_price_history(symbol, intervaltype: :daily, intervalduration: 1, startdate: start_date, enddate: end_date)
     end
 
@@ -238,13 +234,17 @@ module TDAmeritradeApi
 
   private
     def todays_date
-      Date.today.strftime('%Y%m%d')
+      Date.today
     end
 
     def parse_last_trade_date(date_string)
       DateTime.parse(date_string)
     rescue
       0
+    end
+
+    def date_s(date)
+      date.strftime('%Y%m%d')
     end
 
     def validate_price_history_options(options)
@@ -260,12 +260,13 @@ module TDAmeritradeApi
 
     def build_price_history_request_params(symbol, options)
       req = {source: @source_id, requestidentifiertype: 'SYMBOL', requestvalue: symbol}.merge(options)
-      req[:startdate]=req[:startdate].to_tdameritrade_s if req.has_key?(:startdate) && req[:startdate].is_a?(Date)
-      req[:enddate]=req[:enddate].to_tdameritrade_s if req.has_key?(:enddate) && req[:enddate].is_a?(Date)
+      req[:startdate]=date_s(req[:startdate]) if req.has_key?(:startdate) && req[:startdate].is_a?(Date)
+      req[:enddate]=date_s(req[:enddate]) if req.has_key?(:enddate) && req[:enddate].is_a?(Date)
       req[:intervaltype]=req[:intervaltype].to_s.upcase if req[:intervaltype]
       req[:periodtype]=req[:periodtype].to_s.upcase
       req
     end
+
 
   end
 end
