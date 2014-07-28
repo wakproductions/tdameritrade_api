@@ -33,7 +33,6 @@ module TDAmeritradeApi
       request.add_field('Content-Type', 'application/x-www-form-urlencoded')
       request.body = "userid=#{@user_id}&password=#{@password}&source=#{@source_id}&version=1.0.0"
       result = http.request(request)
-      #puts result.body
 
       login_result = result.body.scan(/<result>(.*)<\/result>/).first.first
       login_result = login_result == "OK" ? true : false
