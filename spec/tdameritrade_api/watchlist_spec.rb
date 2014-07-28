@@ -2,14 +2,10 @@ require 'spec_helper'
 require 'tdameritrade_api'
 
 describe TDAmeritradeApi::Client do
-  let(:client) do
-    client = TDAmeritradeApi::Client.new
-    client.login
-    client
-  end
+  let(:client) { RSpec.configuration.client }
 
   it "should be able to get the watchlists" do
-    w = @client.get_watchlists
+    w = client.get_watchlists
     expect(w).to be_a(Array)
     expect(w.count).to be > 0
     wl = w.first

@@ -2,11 +2,7 @@ require 'spec_helper'
 require 'tdameritrade_api'
 
 describe TDAmeritradeApi::Client do
-  let(:client) do
-    client = TDAmeritradeApi::Client.new
-    client.login
-    client
-  end
+  let(:client) { RSpec.configuration.client }
   let(:ticker_symbol) { 'PG' }
 
   it "should populate certain instance variables after logging in" do

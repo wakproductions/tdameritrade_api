@@ -2,3 +2,28 @@ Some tests of the API using curl
 
 curl -b "JSESSIONID=9D6D4732512988AB9BB9E0745D3097ED.OFzciMbhOJfVXUlMIniv3g" -d "source=___&requestidentifiertype=SYMBOL&requestvalue=KNDI&intervaltype=DAILY&intervalduration=1&startdate=20140711" https://apis.tdameritrade.com/apps/100/PriceHistory
 curl -b "JSESSIONID=___" https://apis.tdameritrade.com/apps/100/GetWatchlists?source=___
+curl -b "JSESSIONID=___" https://apis.tdameritrade.com/apps/100/StreamerInfo?source=
+
+<?xml version="1.0"?>
+<amtd>
+<result>OK</result>
+<streamer-info>
+<streamer-url>ameritrade02.streamer.com</streamer-url>
+<token>beefa8836348b812ec9b1cc723c5de69369e052e</token>
+<timestamp>1406514908163</timestamp>
+<cd-domain-id>A000000025846220</cd-domain-id>
+<usergroup>ACCT</usergroup>
+<access-level>ACCT</access-level>
+<acl>F7FUFXG1G3G5G7GKGRH1H3H5M1MANSOFPNRFSDSPTETFTOTSQ2NS</acl>
+<app-id>WIKO</app-id>
+<authorized>Y</authorized>
+<error-msg></error-msg>
+</streamer-info>
+</amtd>
+
+curl -b "JSESSIONID=8E08C7AB68B89629514C7C88384E1C70.gAXa98X8axOJ9jeE6m9IqA" -d "!U=861214584&W=beefa8836348b812ec9b1cc723c5de69369e052e&A=userid=861214584&token=beefa8836348b812ec9b1cc723c5de69369e052e&company=AMER&segment=ADVNCED&cddomain=A000000025846220&usergroup=ACCT&accesslevel=ACCT&authorized=Y&acl=F7FUFXG1G3G5G7GKGRH1H3H5M1MANSOFPNRFSDSPTETFTOTSQ2NS&timestamp=1406514908163&appid=WIKO|source=WIKO|control=false|version=1.0" http://ameritrade02.streamer.com/
+
+
+!U=861214584&W=beefa8836348b812ec9b1cc723c5de69369e052e&A=userid=861214584&token=beefa8836348b812ec9b1cc723c5de69369e052e&company=AMER&segment=ADVNCED&cddomain=A000000025846220&usergroup=ACCT&accesslevel=ACCT&authorized=Y&acl=F7FUFXG1G3G5G7GKGRH1H3H5M1MANSOFPNRFSDSPTETFTOTSQ2NS&timestamp=1406514908163&appid=WIKO|source=WIKO|control=false|version=1.0"
+
+<?xml version="1.0"?><amtd><result>OK</result><xml-log-in><session-id>8E08C7AB68B89629514C7C88384E1C70.gAXa98X8axOJ9jeE6m9IqA</session-id><user-id>wkotzan</user-id><cdi>A000000026237579</cdi><timeout>55</timeout><login-time>2014-07-27 22:58:03 EDT</login-time><associated-account-id>861214584</associated-account-id><nyse-quotes>realtime</nyse-quotes><nasdaq-quotes>realtime</nasdaq-quotes><opra-quotes>realtime</opra-quotes><amex-quotes>realtime</amex-quotes><cme-quotes>delayed</cme-quotes><ice-quotes>delayed</ice-quotes><forex-quotes>delayed</forex-quotes><exchange-status>non-professional</exchange-status><authorizations><options360>false</options360></authorizations><accounts><account><account-id>861214584</account-id><display-name>Swing Trade</display-name><cdi>A000000025846220</cdi><description>WINSTON A KOTZAN</description><associated-account>true</associated-account><company>AMER</company><segment>ADVNCED</segment><unified>true</unified><preferences><express-trading>false</express-trading><option-direct-routing>false</option-direct-routing><stock-direct-routing>false</stock-direct-routing></preferences><authorizations><apex>true</apex><level2>true</level2><stock-trading>true</stock-trading><margin-trading>true</margin-trading><streaming-news>true</streaming-news><option-trading>full</option-trading><streamer>true</streamer><advanced-margin>true</advanced-margin></authorizations></account><account><account-id>861126628</account-id><display-name>WAK IRA</display-name><cdi>A000000025802215</cdi><description>WINSTON A KOTZAN IRA</description><associated-account>false</associated-account><company>AMER</company><segment>ADVNCED</segment><unified>true</unified><preferences><express-trading>false</express-trading><option-direct-routing>false</option-direct-routing><stock-direct-routing>false</stock-direct-routing></preferences><authorizations><apex>true</apex><level2>true</level2><stock-trading>true</stock-trading><margin-trading>true</margin-trading><streaming-news>true</streaming-news><option-trading>spread</option-trading><streamer>true</streamer><advanced-margin>true</advanced-margin></authorizations></account></accounts></xml-log-in></amtd>

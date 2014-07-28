@@ -14,5 +14,14 @@ RSpec.configure do |config|
   # the seed, which is printed after each run.
   #     --seed 1234
   config.order = 'random'
+
+  # This is sort of a test in that you can't really do anything unless you are logged in
+  # We have this hook login here so that you only log in once and don't have to log in for each test
+  config.add_setting :client
+  config.before(:suite) do
+    RSpec.configuration.client = TDAmeritradeApi::Client.new
+    RSpec.configuration.client.login
+  end
+
 end
 
