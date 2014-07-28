@@ -9,7 +9,7 @@ describe TDAmeritradeApi::Client do
   end
 
   it "should be able to get the watchlists" do
-    w = client.get_watchlists
+    w = @client.get_watchlists
     expect(w).to be_a(Array)
     expect(w.count).to be > 0
     wl = w.first
