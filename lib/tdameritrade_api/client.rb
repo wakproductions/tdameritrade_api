@@ -6,11 +6,13 @@ require 'httparty'
 require 'date'
 require 'tdameritrade_api/bindata_types'
 require 'tdameritrade_api/exception'
+require 'tdameritrade_api/streamer'
 require 'tdameritrade_api/watchlist'
 
 module TDAmeritradeApi
   class Client
     include BinDataTypes
+    include Streamer
     include Watchlist
 
     attr_accessor :session_id, :source_id, :user_id, :password
