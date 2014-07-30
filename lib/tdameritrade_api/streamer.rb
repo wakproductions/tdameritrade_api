@@ -14,7 +14,6 @@ module TDAmeritradeApi
             sleep 1
           end
         end
-        thread.join
       end
     end
   end

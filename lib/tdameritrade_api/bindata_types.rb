@@ -1,3 +1,5 @@
+require 'bindata'
+
 module TDAmeritradeApi
   module BinDataTypes
     class PriceHistoryHeader < BinData::Record
