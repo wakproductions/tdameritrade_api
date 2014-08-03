@@ -24,5 +24,6 @@ module TDAmeritradeApi
       float_be    :volume  # in 100s
       int64be     :timestampint # number of milliseconds - needs to be converted to seconds for Ruby
     end
+
   end
 end
