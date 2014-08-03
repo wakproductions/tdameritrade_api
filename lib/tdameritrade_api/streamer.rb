@@ -6,7 +6,7 @@ module TDAmeritradeApi
 
     # +create_streamer+ use this to create a connection to the TDA streaming server
     def create_streamer
-      Streamer.new(get_streamer_info, login_params_hash, @session_id)
+      Streamer.new(streamer_info_raw: get_streamer_info, login_params: login_params_hash, session_id: @session_id)
     end
 
     class Streamer
@@ -15,13 +15,16 @@ module TDAmeritradeApi
 
       attr_reader :streamer_info_response, :authentication_params, :session_id, :thread
 
-      def initialize(streamer_info_raw, login_params, session_id)
-        @streamer_info_response = streamer_info_raw
+      def initialize(opt={})
+        if opt.has_key? :read_from_file
+          @read_from_file = opt[:read_from_file] # if this option is used, it will read the stream from a saved file instead of connecting
+        else
+          @streamer_info_response = opt[:streamer_info_raw]
+          @session_id = opt[:session_id]
 
-        @authentication_params = Hash.new
-        @authentication_params = @authentication_params.merge(login_params).merge(parse_streamer_request_params)
-
-        @session_id = session_id
+          @authentication_params = Hash.new
+          @authentication_params = @authentication_params.merge(opt[:login_params]).merge(parse_streamer_request_params)
+        end
 
         @buffer = String.new
         @message_block = nil
@@ -29,6 +32,11 @@ module TDAmeritradeApi
 
       def run(&block)
         @message_block = block
+
+        if !@read_from_file.nil?
+          run_from_file
+          return
+        end
 
         uri = URI.parse STREAMER_REQUEST_URL
         post_data="!U=#{authentication_params[:account_id]}&W=#{authentication_params[:token]}&" +
@@ -66,6 +74,14 @@ module TDAmeritradeApi
 
       def post_data(data)
         @message_block.call(data) # sends formatted stream data back to wherever Streamer.run was called
+      end
+
+      def run_from_file
+        r = open(@read_from_file, 'rb')
+        while data=r.read(100)
+          @buffer = @buffer + data
+          process_buffer
+        end
       end
 
       def build_parameters(opts={})
@@ -125,14 +141,14 @@ module TDAmeritradeApi
       end
 
       def process_heartbeat
-        return if @buffer.length < 2
+        return false if @buffer.length < 2
 
         if @buffer[0] == 'H'
           hb = StreamData.new(:heartbeat)
 
           # Next char is 'T' (followed by time stamp) or 'H' (no time stamp)
           if @buffer[1] == 'T'
-            return if @buffer.length < 10
+            return false if @buffer.length < 10
             hb.timestamp_indicator = true
             hb.timestamp = Time.at(@buffer[2..9].reverse.unpack('q').first/1000)
             unload_buffer(10)
@@ -149,7 +165,7 @@ module TDAmeritradeApi
       end
 
       def process_snapshot
-        return if @buffer.bytes.each_cons(2).to_a.index([0xFF,0x0A]).nil?
+        return false if @buffer.bytes.each_cons(2).to_a.index([0xFF,0x0A]).nil?
 
         n = StreamData.new(:snapshot)
         data = @buffer.slice!(0, @buffer.bytes.each_cons(2).to_a.index([0xFF,0x0A]) + 2)
