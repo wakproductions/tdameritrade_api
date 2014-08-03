@@ -15,12 +15,9 @@ describe TDAmeritradeApi::Client do
     streamer.run do |data|
       puts data
     end
-    # s = client.create_streamer
-    # s.run do |data|
-    #   puts data
-    # end
-    #
-    # 5.times do |time|
+
+    # This code here is to manually test whether the streamer is running in an asynchronous thread
+    # 100.times do |time|
     #   sleep 2
     #   puts "main thread #{time}"
     # end

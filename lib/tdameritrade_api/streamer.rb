@@ -45,27 +45,17 @@ module TDAmeritradeApi
 
         #outfile=File.join(Dir.tmpdir, "sample_stream.binary")
         #w = open(outfile, 'wb')
-        Net::HTTP.start(uri.host, uri.port) do |http|
-          http.request(request) do |response|
-            response.read_body do |chunk|
-              @buffer = @buffer + chunk
-              process_buffer
+        @thread = Thread.new do
+          Net::HTTP.start(uri.host, uri.port) do |http|
+            http.request(request) do |response|
+              response.read_body do |chunk|
+                @buffer = @buffer + chunk
+                #w.write(chunk)
+                process_buffer
+              end
             end
-
-
-            # begin
-
-            #   res.read_body do |chunk|
-            #     puts chunk # this is just for testing/setup
-            #     read_chunk(chunk)
-            #     #w.write(chunk)
-            #   end
-            # rescue
-            #   #w.close
-            # end
           end
         end
-
         # @thread = Thread.new do
         #   # 25.times do |i|
         #   #   yield({the_data: 123, iteration: i})
