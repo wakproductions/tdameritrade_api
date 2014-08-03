@@ -45,14 +45,12 @@ module TDAmeritradeApi
 
         #outfile=File.join(Dir.tmpdir, "sample_stream.binary")
         #w = open(outfile, 'wb')
-        @thread = Thread.new do
-          Net::HTTP.start(uri.host, uri.port) do |http|
-            http.request(request) do |response|
-              response.read_body do |chunk|
-                @buffer = @buffer + chunk
-                #w.write(chunk)
-                process_buffer
-              end
+        Net::HTTP.start(uri.host, uri.port) do |http|
+          http.request(request) do |response|
+            response.read_body do |chunk|
+              @buffer = @buffer + chunk
+              #w.write(chunk)
+              process_buffer
             end
           end
         end
@@ -130,7 +128,7 @@ module TDAmeritradeApi
         return if @buffer.length < 2
 
         if @buffer[0] == 'H'
-          hb = Heartbeat.new
+          hb = StreamData.new(:heartbeat)
 
           # Next char is 'T' (followed by time stamp) or 'H' (no time stamp)
           if @buffer[1] == 'T'
@@ -151,19 +149,36 @@ module TDAmeritradeApi
       end
 
       def process_snapshot
-        return if @buffer.bytes.index(0x0A).nil?
+        return if @buffer.bytes.each_cons(2).to_a.index([0xFF,0x0A]).nil?
 
-        # !!!! THIS IS TEMPORARY PSEUDOCODE THAT DOES NOT REALLY PROCESS !!!!
-        data = @buffer.slice!(0, @buffer.bytes.index(0x0A) + 1)
-        post_data("'N' Snapshot found: #{data}")
+        n = StreamData.new(:snapshot)
+        data = @buffer.slice!(0, @buffer.bytes.each_cons(2).to_a.index([0xFF,0x0A]) + 2)
+        service_id_length = data[1..2].reverse.unpack('S').first
+        n.service_id = data.slice(3, service_id_length)
+        data.slice!(0, 3 + service_id_length)
+
+        case n.service_id
+          when "1" # level 1 quote
+            # TODO Need to support this kind of snapshot
+            n.message = "'N' Snapshot found (level 1 quote, unsupported type): #{n.service_id}"
+          when "100"  # message from the server
+            # next field will be the message length (4 bytes) followed by the message
+            message_length = data[0..3].reverse.unpack('S').first
+            n.message = data.slice(4, message_length)
+          else
+            n.message = "'N' Snapshot found (unsupported type): #{n.service_id}"
+        end
+        post_data(n)
       end
 
       def process_stream_data
-        return if @buffer.bytes.index(0x0A).nil?
+        return if @buffer.bytes.each_cons(2).to_a.index([0xFF,0x0A]).nil?
 
         # !!!! THIS IS TEMPORARY PSEUDOCODE THAT DOES NOT REALLY PROCESS !!!!
-        data = @buffer.slice!(0, @buffer.bytes.index(0x0A) + 1)
-        post_data("'S' Stream data found: #{data}")
+        data = @buffer.slice!(0, @buffer.bytes.each_cons(2).to_a.index([0xFF,0x0A]) + 2)
+        s = StreamData.new(:stream_data)
+        s.message = "'S' Stream data found: #{data}"
+        post_data(s)
       end
 
       def process_buffer
