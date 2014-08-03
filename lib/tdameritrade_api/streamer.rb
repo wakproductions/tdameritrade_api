@@ -160,6 +160,7 @@ module TDAmeritradeApi
           end
 
           post_data(hb)
+          true
         end
 
       end
@@ -185,16 +186,18 @@ module TDAmeritradeApi
             n.message = "'N' Snapshot found (unsupported type): #{n.service_id}"
         end
         post_data(n)
+        true
       end
 
-      def process_stream_data
-        return if @buffer.bytes.each_cons(2).to_a.index([0xFF,0x0A]).nil?
+      def process_stream_record
+        return false if @buffer.bytes.each_cons(2).to_a.index([0xFF,0x0A]).nil?
 
         # !!!! THIS IS TEMPORARY PSEUDOCODE THAT DOES NOT REALLY PROCESS !!!!
         data = @buffer.slice!(0, @buffer.bytes.each_cons(2).to_a.index([0xFF,0x0A]) + 2)
         s = StreamData.new(:stream_data)
         s.message = "'S' Stream data found: #{data}"
         post_data(s)
+        true
       end
 
       def process_buffer
@@ -203,15 +206,17 @@ module TDAmeritradeApi
           @buffer.slice!(0,1)
         end
 
-        case next_record_type_in_buffer
-          when :heartbeat
-            process_heartbeat
-          when :snapshot
-            process_snapshot
-          when :stream_data
-            process_stream_data
+        process_next = true
+        until (process_next == false) || (next_record_type_in_buffer.nil?)
+          case next_record_type_in_buffer
+            when :heartbeat
+              process_next = process_heartbeat
+            when :snapshot
+              process_next = process_snapshot
+            when :stream_data
+              process_next = process_stream_record
+          end
         end
-
       end
 
     end
