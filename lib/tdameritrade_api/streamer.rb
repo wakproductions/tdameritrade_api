@@ -175,13 +175,10 @@ module TDAmeritradeApi
         data.slice!(0, 3 + service_id_length)
 
         case n.service_id
-          when "1" # level 1 quote
-            # TODO Need to support this kind of snapshot
-            n.message = "'N' Snapshot found (level 1 quote, unsupported type): #{n.service_id}"
           when "100"  # message from the server
             # next field will be the message length (4 bytes) followed by the message
-            message_length = data[0..3].reverse.unpack('S').first
-            n.message = data.slice(4, message_length)
+            n.message_length = data[0..3].reverse.unpack('S').first
+            n.message = data.slice(4, n.message_length)
           else
             n.message = "'N' Snapshot found (unsupported type): #{n.service_id}"
         end
@@ -192,12 +189,53 @@ module TDAmeritradeApi
       def process_stream_record
         return false if @buffer.bytes.each_cons(2).to_a.index([0xFF,0x0A]).nil?
 
-        # !!!! THIS IS TEMPORARY PSEUDOCODE THAT DOES NOT REALLY PROCESS !!!!
         data = @buffer.slice!(0, @buffer.bytes.each_cons(2).to_a.index([0xFF,0x0A]) + 2)
         s = StreamData.new(:stream_data)
-        s.message = "'S' Stream data found: #{data}"
+        columns = Hash.new
+
+        s.message_length = data[1..2].reverse.unpack('S').first
+        s.service_id = data[3..4].reverse.unpack('S').first.to_s  # I know, the API is inconsistent in its use of string vs integer for SID
+        data.slice!(0, 5)
+
+        until (data.bytes == [0xFF, 0x0A]) || (data.length <= 2) # last two characters should be the delimiters
+          column_number = data[0].unpack('c').first
+          column_name = LEVEL1_COLUMN_NUMBER.key(column_number)
+          column_type = LEVEL1_COLUMN_TYPE[column_name]
+          column_value = read_stream_column(data, column_type)
+          columns[column_name] = column_value
+        end
+
+        s.columns = columns
+
         post_data(s)
         true
+      end
+
+      def read_stream_column(data, column_type)
+
+        # First byte of data should still contain the column number
+        case column_type
+          when :string
+            column_size = data[1..2].reverse.unpack('S').first
+            column_value = data.slice(3, column_size)
+            data.slice!(0, 3 + column_size)
+          when :float
+            column_value = data[1..4].reverse.unpack('F').first
+            data.slice!(0, 5)
+          when :int
+            column_value = round(data[1..4].reverse.unpack('L').first, 2)
+            data.slice!(0, 5)
+          when :char
+            column_value = data[1..2]
+            data.slice!(0, 3)
+          when :long
+            column_value = data[1..8].reverse.unpack('Q').first
+            data.slice!(0, 9)
+          when :boolean
+            column_value = data.bytes[1] > 0
+            data.slice!(0, 2)
+        end
+        column_value
       end
 
       def process_buffer

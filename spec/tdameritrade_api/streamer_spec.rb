@@ -26,7 +26,9 @@ describe TDAmeritradeApi::Client do
             puts "Snapshot: #{data}"
           end
         when :stream_data
-          puts "Stream: #{data.message}"
+          #puts "Stream: #{data}"
+          cols = data.columns.each { |k,v| "#{k}: #{v}   "}
+          puts "Stream: #{cols}"
         else
           puts "Unknown type of data: #{data}"
       end
