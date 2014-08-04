@@ -13,6 +13,7 @@ module TDAmeritradeApi
       include StreamerTypes
       STREAMER_REQUEST_URL='http://ameritrade02.streamer.com/'
 
+      attr_accessor :output_file
       attr_reader :streamer_info_response, :authentication_params, :session_id, :thread
 
       def initialize(opt={})
@@ -30,13 +31,19 @@ module TDAmeritradeApi
         @message_block = nil
       end
 
-      def run(&block)
+      def run(opt={}, &block)
         @message_block = block
 
         if !@read_from_file.nil?
           run_from_file
           return
         end
+
+        if !opt.has_key?(:symbols) && !opt.has_key?(:request_fields)
+          raise TDAmeritradeApiError, ":symbols and :request_fields are required parameters for Streamer.run()"
+        end
+        symbol_list = process_symbols(opt[:symbols])
+        request_fields_list = process_request_fields(opt[:request_fields])
 
         uri = URI.parse STREAMER_REQUEST_URL
         post_data="!U=#{authentication_params[:account_id]}&W=#{authentication_params[:token]}&" +
@@ -45,32 +52,30 @@ module TDAmeritradeApi
             "cddomain=#{authentication_params[:cd_domain_id]}&usergroup=#{authentication_params[:usergroup]}&" +
             "accesslevel=#{authentication_params[:access_level]}&authorized=#{authentication_params[:authorized]}&" +
             "acl=#{authentication_params[:acl]}&timestamp=#{authentication_params[:timestamp]}&" +
-            "appid=#{authentication_params[:app_id]}|S=QUOTE&C=SUBS&P=VXX+XIV&T=0+1+2|control=false" +
+            "appid=#{authentication_params[:app_id]}|S=QUOTE&C=SUBS&P=#{symbol_list}&T=#{request_fields_list}|control=false" +
             "|source=#{authentication_params[:source]}\n\n"
 
         request = Net::HTTP::Post.new('/')
         request.body = post_data
 
-        #outfile=File.join(Dir.tmpdir, "sample_stream.binary")
-        #w = open(outfile, 'wb')
         Net::HTTP.start(uri.host, uri.port) do |http|
           http.request(request) do |response|
             response.read_body do |chunk|
               @buffer = @buffer + chunk
-              #w.write(chunk)
+              save_to_output_file(chunk) if @output_file
               process_buffer
             end
           end
         end
-        # @thread = Thread.new do
-        #   # 25.times do |i|
-        #   #   yield({the_data: 123, iteration: i})
-        #   #   sleep 1
-        #   #end
-        # end
       end
 
       private
+
+      def save_to_output_file(chunk)
+        w = File.open(@output_file, 'a')
+        w.write(chunk)
+        w.close
+      end
 
       def post_data(data)
         @message_block.call(data) # sends formatted stream data back to wherever Streamer.run was called
@@ -117,6 +122,15 @@ module TDAmeritradeApi
         p[:authorized] = si.xpath('authorized').text
         p[:timestamp] = si.xpath('timestamp').text
         p
+      end
+
+      def process_symbols(symbols)
+        # symbols should be an array of strings
+        symbols.join('+')
+      end
+
+      def process_request_fields(fields)
+        fields.map { |c| LEVEL1_COLUMN_NUMBER[c] }.sort.map { |c| c.to_s }.join('+')
       end
 
       def next_record_type_in_buffer
@@ -220,10 +234,10 @@ module TDAmeritradeApi
             column_value = data.slice(3, column_size)
             data.slice!(0, 3 + column_size)
           when :float
-            column_value = data[1..4].reverse.unpack('F').first
+            column_value = data[1..4].reverse.unpack('F').first.round(2)
             data.slice!(0, 5)
           when :int
-            column_value = round(data[1..4].reverse.unpack('L').first, 2)
+            column_value = data[1..4].reverse.unpack('L').first
             data.slice!(0, 5)
           when :char
             column_value = data[1..2]

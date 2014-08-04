@@ -1,3 +1,5 @@
+require 'active_support/time'
+
 module TDAmeritradeApi
   module StreamerTypes
     SERVICE_ID={
@@ -126,6 +128,23 @@ module TDAmeritradeApi
       def service_type
         SERVICE_ID.key(service_id)
       end
+
+      def convert_time_columns(day=Date.today)
+        return if @columns.nil?
+        time_columns = [:tradetime, :quotetime]
+        time_columns.each do |tc|
+          if @columns.has_key? tc
+            @columns[(tc.to_s + '_ruby').to_sym] = Time.at(day.to_time.to_i + @columns[tc] + utc_seconds_conversion(day.to_time))
+          end
+        end
+        @columns
+      end
+
+      private
+        # Because the time columns provided by the streamer are in # of seconds since midnight, Eastern Time
+        def utc_seconds_conversion(time)
+          time.in_time_zone('Eastern Time (US & Canada)').strftime('%z').to_i / 100 * -60
+        end
     end
   end
 end
