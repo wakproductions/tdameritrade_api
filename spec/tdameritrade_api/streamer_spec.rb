@@ -6,9 +6,11 @@ describe TDAmeritradeApi::Client do
 
   # Settings for manually running individual tests
   let(:mock_data_file) { File.join(Dir.pwd, 'spec', 'test_data', 'sample_stream_20140804.binary') }
+  #let(:watchlist) { ['VXX','XIV','UVXY','DD','UAL','PG','MSFT'] }
+  let(:watchlist) { load_watchlist }
   let(:display_output) { true }
   let(:use_mock_data_file) { true }
-  let(:connect_to_stream) { false }
+  let(:connect_to_stream) { true }
 
   it 'should create a valid streamer' do
     expect(streamer.streamer_info_response).to be_a(String)
@@ -53,7 +55,7 @@ describe TDAmeritradeApi::Client do
       pout "Testing TD Ameritrade Level 1 quote data stream"
 
       request_fields = [:volume, :last, :bid, :symbol, :ask, :quotetime, :high, :low, :close, :tradetime, :tick]
-      symbols = ['VXX','XIV','UVXY','FEYE','KNDI','LOCO','GLUU','DD','UAL']
+      symbols = watchlist
 
       streamer.output_file = File.join(Dir.pwd, 'spec', 'test_data', 'sample_stream_20140804.binary') if use_mock_data_file
       streamer.run(symbols: symbols, request_fields: request_fields) do |data|
@@ -83,5 +85,13 @@ describe TDAmeritradeApi::Client do
 private
   def pout(output)
     puts output if display_output
+  end
+
+  def load_watchlist
+    wl_file = File.join(Dir.pwd, 'spec', 'test_data', 'watchlist.txt')
+    f = File.open(wl_file, 'r')
+    list = f.read().split("\n")
+    f.close
+    list
   end
 end

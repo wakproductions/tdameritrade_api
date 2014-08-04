@@ -58,6 +58,11 @@ module TDAmeritradeApi
         request = Net::HTTP::Post.new('/')
         request.body = post_data
 
+        # clear the output file
+        if @output_file
+          File.delete(@output_file)
+        end
+
         Net::HTTP.start(uri.host, uri.port) do |http|
           http.request(request) do |response|
             response.read_body do |chunk|
