@@ -60,18 +60,19 @@ module TDAmeritradeApi
 
         # clear the output file
         if @output_file
-          File.delete(@output_file)
+          File.delete(@output_file) if File.exists?(@output_file)
         end
 
         Net::HTTP.start(uri.host, uri.port) do |http|
           http.request(request) do |response|
-            response.read_body do |chunk|
+            response.read_body do |chunk|  # right here is the connection reset error
               @buffer = @buffer + chunk
               save_to_output_file(chunk) if @output_file
               process_buffer
             end
           end
         end
+
       end
 
       private
@@ -155,10 +156,6 @@ module TDAmeritradeApi
         end
       end
 
-      def unload_buffer(bytes)
-        @buffer.slice!(0,bytes)
-      end
-
       def process_heartbeat
         return false if @buffer.length < 2
 
@@ -170,10 +167,10 @@ module TDAmeritradeApi
             return false if @buffer.length < 10
             hb.timestamp_indicator = true
             hb.timestamp = Time.at(@buffer[2..9].reverse.unpack('q').first/1000)
-            unload_buffer(10)
+            @buffer.slice!(0, 10)
           elsif @buffer[1] != 'H'
             hb.timestamp_indicator = false
-            unload_buffer(2)
+            @buffer.slice!(0, 2)
           else
             raise TDAmeritradeApiError, "Unexpected character in stream. Expected: Heartbeat timestamp indicator 'T' or 'H'"
           end
@@ -185,19 +182,28 @@ module TDAmeritradeApi
       end
 
       def process_snapshot
-        return false if @buffer.bytes.each_cons(2).to_a.index([0xFF,0x0A]).nil?
+        return false if @buffer[0] != 'N' || @buffer.length < 3
 
         n = StreamData.new(:snapshot)
-        data = @buffer.slice!(0, @buffer.bytes.each_cons(2).to_a.index([0xFF,0x0A]) + 2)
-        service_id_length = data[1..2].reverse.unpack('S').first
-        n.service_id = data.slice(3, service_id_length)
-        data.slice!(0, 3 + service_id_length)
+        service_id_length = @buffer[1..2].reverse.unpack('S').first
+        return false if @buffer.length < 3 + service_id_length
+        n.service_id = @buffer.slice(3, service_id_length)
 
         case n.service_id
           when "100"  # message from the server
             # next field will be the message length (4 bytes) followed by the message
-            n.message_length = data[0..3].reverse.unpack('S').first
-            n.message = data.slice(4, n.message_length)
+            message_length = @buffer.slice(3 + service_id_length, 4)[0..3].reverse.unpack('L').first
+            message_bytes = @buffer.slice(3 + service_id_length + 4, message_length + 2)
+
+            return false if @buffer.length < 3 + service_id_length + message_length + 2
+
+            columns = Hash.new
+            columns[:service_id] = message_bytes.slice(3, 2).reverse.unpack('S').first
+            columns[:return_code] = message_bytes.slice(6, 2).reverse.unpack('S').first
+            columns[:description] = message_bytes.slice(9, message_length - 9)
+            n.columns = columns
+
+            @buffer.slice!(0, 3 + service_id_length + 4 + message_length + 2)
           else
             n.message = "'N' Snapshot found (unsupported type): #{n.service_id}"
         end
@@ -206,17 +212,20 @@ module TDAmeritradeApi
       end
 
       def process_stream_record
-        return false if @buffer.bytes.each_cons(2).to_a.index([0xFF,0x0A]).nil?
+        return false if @buffer[0] != 'S' || @buffer.length < 3
 
-        data = @buffer.slice!(0, @buffer.bytes.each_cons(2).to_a.index([0xFF,0x0A]) + 2)
         s = StreamData.new(:stream_data)
         columns = Hash.new
 
-        s.message_length = data[1..2].reverse.unpack('S').first
-        s.service_id = data[3..4].reverse.unpack('S').first.to_s  # I know, the API is inconsistent in its use of string vs integer for SID
-        data.slice!(0, 5)
+        message_length = @buffer[1..2].reverse.unpack('S').first
+        return false if @buffer.length < message_length + 5
+        data = @buffer.slice!(0, message_length + 5) # extract the entire message from the buffer
+        data.slice!(0, 3) # chop off the 'S' flag and the message length
 
-        until (data.bytes == [0xFF, 0x0A]) || (data.length <= 2) # last two characters should be the delimiters
+        s.service_id = data[0..1].reverse.unpack('S').first.to_s  # I know, the API is inconsistent in its use of string vs integer for SID
+        data.slice!(0, 2)
+
+        until data.length <= 2 # last two characters should be the delimiters 0xFF,0x0A
           column_number = data[0].unpack('c').first
           column_name = LEVEL1_COLUMN_NUMBER.key(column_number)
           column_type = LEVEL1_COLUMN_TYPE[column_name]
@@ -239,7 +248,8 @@ module TDAmeritradeApi
             column_value = data.slice(3, column_size)
             data.slice!(0, 3 + column_size)
           when :float
-            column_value = data[1..4].reverse.unpack('F').first.round(2)
+            column_value = data[1..4].reverse.unpack('F').first
+            column_value = column_value.round(2) if column_value
             data.slice!(0, 5)
           when :int
             column_value = data[1..4].reverse.unpack('L').first
@@ -250,6 +260,9 @@ module TDAmeritradeApi
           when :long
             column_value = data[1..8].reverse.unpack('Q').first
             data.slice!(0, 9)
+          when :short
+            column_value = data[1..2].reverse.unpack('S').first
+            data.slice!(0, 3)
           when :boolean
             column_value = data.bytes[1] > 0
             data.slice!(0, 2)

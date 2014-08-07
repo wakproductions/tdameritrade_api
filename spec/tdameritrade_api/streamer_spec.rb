@@ -5,12 +5,12 @@ describe TDAmeritradeApi::Client do
   let(:streamer) {client.create_streamer}
 
   # Settings for manually running individual tests
-  let(:mock_data_file) { File.join(Dir.pwd, 'spec', 'test_data', 'sample_stream_20140804.binary') }
+  let(:mock_data_file) { File.join(Dir.pwd, 'spec', 'test_data', 'sample_stream.binary') }
   #let(:watchlist) { ['VXX','XIV','UVXY','DD','UAL','PG','MSFT'] }
   let(:watchlist) { load_watchlist }
   let(:display_output) { true }
   let(:use_mock_data_file) { true }
-  let(:connect_to_stream) { true }
+  let(:connect_to_stream) { false }
 
   it 'should create a valid streamer' do
     expect(streamer.streamer_info_response).to be_a(String)
@@ -26,12 +26,13 @@ describe TDAmeritradeApi::Client do
 
       streamer = TDAmeritradeApi::Streamer::Streamer.new(read_from_file: mock_data_file)
       streamer.run do |data|
+        data.convert_time_columns
         case data.stream_data_type
           when :heartbeat
             pout "Heartbeat: #{data.timestamp}"
           when :snapshot
             if data.service_id == "100"
-              pout "Snapshot SID-#{data.service_id}: #{data.message}"
+              pout "Snapshot SID-#{data.service_id}: #{data.columns[:description]}"
             else
               pout "Snapshot: #{data}"
             end
@@ -54,25 +55,40 @@ describe TDAmeritradeApi::Client do
     if connect_to_stream
       pout "Testing TD Ameritrade Level 1 quote data stream"
 
+      i = 5
       request_fields = [:volume, :last, :bid, :symbol, :ask, :quotetime, :high, :low, :close, :tradetime, :tick]
       symbols = watchlist
 
-      streamer.output_file = File.join(Dir.pwd, 'spec', 'test_data', 'sample_stream_20140804.binary') if use_mock_data_file
-      streamer.run(symbols: symbols, request_fields: request_fields) do |data|
-        data.convert_time_columns
-        case data.stream_data_type
-          when :heartbeat
-            pout "Heartbeat: #{data.timestamp}"
-          when :snapshot
-            if data.service_id == "100"
-              pout "Snapshot SID-#{data.service_id}: #{data.message}"
-            else
-              pout "Snapshot: #{data}"
+
+      while true
+        begin
+          streamer.output_file = new_mock_data_file_name(i) if use_mock_data_file
+          streamer.run(symbols: symbols, request_fields: request_fields) do |data|
+            data.convert_time_columns
+            case data.stream_data_type
+              when :heartbeat
+                pout "Heartbeat: #{data.timestamp}"
+              when :snapshot
+                if data.service_id == "100"
+                  pout "Snapshot SID-#{data.service_id}: #{data.message}"
+                else
+                  pout "Snapshot: #{data}"
+                end
+              when :stream_data
+                pout "#{i} Stream: #{data.columns}"
+                i += 1
+              else
+                pout "Unknown type of data: #{data}"
             end
-          when :stream_data
-            pout "Stream: #{data.columns}"
-          else
-            pout "Unknown type of data: #{data}"
+          end
+        rescue Exception => e
+          # This idiom of a rescue block you can use to reset the connection if it drops,
+          # which can happen easily during a fast market.
+          if e.class == Errno::ECONNRESET
+            puts "Connection reset, reconnecting..."
+            i += 1
+            mock_data_file = File.join(Dir.pwd, 'spec', 'test_data', "sample_stream_20140806-0#{i}.binary")
+          end
         end
       end
     else
@@ -93,5 +109,9 @@ private
     list = f.read().split("\n")
     f.close
     list
+  end
+
+  def new_mock_data_file_name(i)
+    "sample_stream_#{Date.today.strftime('%Y%m%d')}-0#{i}.binary"
   end
 end

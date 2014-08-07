@@ -68,7 +68,8 @@ module TDAmeritradeApi
         tradetime_market_hours: 44,
         change_market_hours: 45,
         is_regular_market_quote: 46,
-        is_regular_market_trade: 47
+        is_regular_market_trade: 47,
+        service_id: 100
     }
 
     LEVEL1_COLUMN_TYPE={
@@ -114,12 +115,13 @@ module TDAmeritradeApi
         tradetime_market_hours: :int,
         change_market_hours: :float,
         is_regular_market_quote: :boolean,
-        is_regular_market_trade: :boolean
+        is_regular_market_trade: :boolean,
+        service_id: :short
     }
 
     STREAM_DATA_TYPE=[:heartbeat, :snapshot, :stream_data]
     class StreamData
-      attr_accessor :stream_data_type, :timestamp_indicator, :timestamp, :service_id, :message, :message_length, :columns
+      attr_accessor :stream_data_type, :timestamp_indicator, :timestamp, :service_id, :columns
 
       def initialize(stream_data_type)
         @stream_data_type=stream_data_type
@@ -134,7 +136,8 @@ module TDAmeritradeApi
         time_columns = [:tradetime, :quotetime]
         time_columns.each do |tc|
           if @columns.has_key? tc
-            @columns[(tc.to_s + '_ruby').to_sym] = Time.at(day.to_time.to_i + @columns[tc] + utc_seconds_conversion(day.to_time))
+            # TODO Investigate whether this still works if the computer is in a timezone other than ET
+            @columns[(tc.to_s + '_ruby').to_sym] = Time.at(day.to_time.to_i + @columns[tc])
           end
         end
         @columns
