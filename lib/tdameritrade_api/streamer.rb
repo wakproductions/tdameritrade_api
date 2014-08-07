@@ -255,7 +255,7 @@ module TDAmeritradeApi
             column_value = data[1..4].reverse.unpack('L').first
             data.slice!(0, 5)
           when :char
-            column_value = data[1..2]
+            column_value = data[1]
             data.slice!(0, 3)
           when :long
             column_value = data[1..8].reverse.unpack('Q').first

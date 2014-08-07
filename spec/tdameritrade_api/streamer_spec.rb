@@ -5,12 +5,12 @@ describe TDAmeritradeApi::Client do
   let(:streamer) {client.create_streamer}
 
   # Settings for manually running individual tests
-  let(:mock_data_file) { File.join(Dir.pwd, 'spec', 'test_data', 'sample_stream.binary') }
+  let(:mock_data_file) { File.join(Dir.pwd, 'spec', 'test_data', 'sample_stream_archives', 'sample_stream_20140804.binary') }
   #let(:watchlist) { ['VXX','XIV','UVXY','DD','UAL','PG','MSFT'] }
   let(:watchlist) { load_watchlist }
   let(:display_output) { true }
   let(:use_mock_data_file) { true }
-  let(:connect_to_stream) { false }
+  let(:connect_to_stream) { true }
 
   it 'should create a valid streamer' do
     expect(streamer.streamer_info_response).to be_a(String)
@@ -55,13 +55,14 @@ describe TDAmeritradeApi::Client do
     if connect_to_stream
       pout "Testing TD Ameritrade Level 1 quote data stream"
 
-      i = 5
+      i = 0
       request_fields = [:volume, :last, :bid, :symbol, :ask, :quotetime, :high, :low, :close, :tradetime, :tick]
       symbols = watchlist
 
 
       while true
         begin
+          i += 1
           streamer.output_file = new_mock_data_file_name(i) if use_mock_data_file
           streamer.run(symbols: symbols, request_fields: request_fields) do |data|
             data.convert_time_columns
@@ -70,7 +71,7 @@ describe TDAmeritradeApi::Client do
                 pout "Heartbeat: #{data.timestamp}"
               when :snapshot
                 if data.service_id == "100"
-                  pout "Snapshot SID-#{data.service_id}: #{data.message}"
+                  pout "Snapshot SID-#{data.service_id}: #{data.columns[:description]}"
                 else
                   pout "Snapshot: #{data}"
                 end
@@ -86,8 +87,9 @@ describe TDAmeritradeApi::Client do
           # which can happen easily during a fast market.
           if e.class == Errno::ECONNRESET
             puts "Connection reset, reconnecting..."
-            i += 1
             mock_data_file = File.join(Dir.pwd, 'spec', 'test_data', "sample_stream_20140806-0#{i}.binary")
+          else
+            raise e
           end
         end
       end
