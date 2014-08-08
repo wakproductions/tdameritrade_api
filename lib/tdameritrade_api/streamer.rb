@@ -80,7 +80,7 @@ module TDAmeritradeApi
 
       def save_to_output_file(chunk)
         w = File.open(@output_file, 'a')
-        w.write(chunk)
+        w.write(chunk.encode('UTF-8', {:invalid => :replace, :undef => :replace, :replace => '?'}))
         w.close
       end
 
