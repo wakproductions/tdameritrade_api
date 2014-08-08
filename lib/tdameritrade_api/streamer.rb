@@ -33,6 +33,7 @@ module TDAmeritradeApi
 
       def run(opt={}, &block)
         @message_block = block
+        @buffer = String.new
 
         if !@read_from_file.nil?
           run_from_file

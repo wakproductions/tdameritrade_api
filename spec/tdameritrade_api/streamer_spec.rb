@@ -56,14 +56,14 @@ describe TDAmeritradeApi::Client do
       pout "Testing TD Ameritrade Level 1 quote data stream"
 
       i = 0
+      file_num = 1
       request_fields = [:volume, :last, :bid, :symbol, :ask, :quotetime, :high, :low, :close, :tradetime, :tick]
       symbols = watchlist
 
-
       while true
         begin
-          i += 1
-          streamer.output_file = new_mock_data_file_name(i) if use_mock_data_file
+          file_num += 1 while File.exists? File.join(Dir.pwd, 'spec', 'test_data', 'sample_stream_archives', new_mock_data_file_name(file_num))
+          streamer.output_file = File.join(Dir.pwd, 'spec', 'test_data', 'sample_stream_archives', new_mock_data_file_name(file_num)) if use_mock_data_file
           streamer.run(symbols: symbols, request_fields: request_fields) do |data|
             data.convert_time_columns
             case data.stream_data_type
@@ -87,7 +87,6 @@ describe TDAmeritradeApi::Client do
           # which can happen easily during a fast market.
           if e.class == Errno::ECONNRESET
             puts "Connection reset, reconnecting..."
-            mock_data_file = File.join(Dir.pwd, 'spec', 'test_data', "sample_stream_20140806-0#{i}.binary")
           else
             raise e
           end
