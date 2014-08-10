@@ -1,3 +1,3 @@
 module TDAmeritradeApi
-  VERSION = "0.0.1.3.alpha"
+  VERSION = "0.0.1.201408092358.beta"
 end
