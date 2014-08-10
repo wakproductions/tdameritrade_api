@@ -29,9 +29,11 @@ module TDAmeritradeApi
 
         @buffer = String.new
         @message_block = nil
+        @quit = false
       end
 
       def run(opt={}, &block)
+        @quit = false
         @message_block = block
         @buffer = String.new
 
@@ -66,14 +68,25 @@ module TDAmeritradeApi
 
         Net::HTTP.start(uri.host, uri.port) do |http|
           http.request(request) do |response|
-            response.read_body do |chunk|  # right here is the connection reset error
-              @buffer = @buffer + chunk
-              save_to_output_file(chunk) if @output_file
-              process_buffer
+            if !@quit
+              response.read_body do |chunk|  # right here is the connection reset error
+                if !@quit
+                  @buffer = @buffer + chunk
+                  save_to_output_file(chunk) if @output_file
+                  process_buffer
+                else
+                  http.finish
+                  return
+                end
+              end
             end
           end
         end
 
+      end
+
+      def quit
+        @quit = true
       end
 
       private
@@ -85,12 +98,13 @@ module TDAmeritradeApi
       end
 
       def post_data(data)
-        @message_block.call(data) # sends formatted stream data back to wherever Streamer.run was called
+        @message_block.call(data) # sends formatted stream data back to block passed to Streamer.run
       end
 
       def run_from_file
+        @quit = false
         r = open(@read_from_file, 'rb')
-        while data=r.read(100)
+        while (data=r.read(100)) && !@quit
           @buffer = @buffer + data
           process_buffer
         end
@@ -201,7 +215,9 @@ module TDAmeritradeApi
             columns = Hash.new
             columns[:service_id] = message_bytes.slice(3, 2).reverse.unpack('S').first
             columns[:return_code] = message_bytes.slice(6, 2).reverse.unpack('S').first
-            columns[:description] = message_bytes.slice(9, message_length - 9)
+
+            description_length = message_bytes.slice(9, 2).reverse.unpack('S').first
+            columns[:description] = message_bytes.slice(11, description_length)
             n.columns = columns
 
             @buffer.slice!(0, 3 + service_id_length + 4 + message_length + 2)
@@ -272,6 +288,8 @@ module TDAmeritradeApi
       end
 
       def process_buffer
+        @buffer = String.new and return if @quit # empty buffer and stop processing
+
         # advance until we get a recognizable code in the stream
         until @buffer.length == 0 || !next_record_type_in_buffer.nil?
           @buffer.slice!(0,1)
