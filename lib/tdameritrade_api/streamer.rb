@@ -14,7 +14,7 @@ module TDAmeritradeApi
       STREAMER_REQUEST_URL='http://ameritrade02.streamer.com/'
 
       attr_accessor :output_file
-      attr_reader :streamer_info_response, :authentication_params, :session_id, :thread
+      attr_reader :streamer_info_response, :authentication_params, :session_id, :symbols, :request_fields
 
       def initialize(opt={})
         if opt.has_key? :read_from_file
@@ -45,6 +45,8 @@ module TDAmeritradeApi
         if !opt.has_key?(:symbols) && !opt.has_key?(:request_fields)
           raise TDAmeritradeApiError, ":symbols and :request_fields are required parameters for Streamer.run()"
         end
+        @symbols = opt[:symbols]
+        @request_fields = opt[:request_fields]
         symbol_list = process_symbols(opt[:symbols])
         request_fields_list = process_request_fields(opt[:request_fields])
 
@@ -92,8 +94,8 @@ module TDAmeritradeApi
       private
 
       def save_to_output_file(chunk)
-        w = File.open(@output_file, 'a')
-        w.write(chunk.encode('UTF-8', {:invalid => :replace, :undef => :replace, :replace => '?'}))
+        w = File.open(@output_file, 'ab')
+        w.write(chunk.b)
         w.close
       end
 
