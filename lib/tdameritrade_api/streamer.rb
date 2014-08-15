@@ -106,7 +106,7 @@ module TDAmeritradeApi
       def run_from_file
         @quit = false
         r = open(@read_from_file, 'rb')
-        while (data=r.read(100)) && !@quit
+        while (data=r.read(1000)) && !@quit
           @buffer = @buffer + data
           process_buffer
         end
