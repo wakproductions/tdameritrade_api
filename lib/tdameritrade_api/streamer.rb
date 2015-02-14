@@ -81,6 +81,8 @@ module TDAmeritradeApi
                   return
                 end
               end
+            else
+              http.finish
             end
           end
         end
@@ -106,7 +108,7 @@ module TDAmeritradeApi
       def run_from_file
         @quit = false
         r = open(@read_from_file, 'rb')
-        while (data=r.read(100)) && !@quit
+        while (data=r.read(1000)) && !@quit
           @buffer = @buffer + data
           process_buffer
         end
@@ -298,7 +300,7 @@ module TDAmeritradeApi
         end
 
         process_next = true
-        until (process_next == false) || (next_record_type_in_buffer.nil?)
+        until (process_next == false) || (next_record_type_in_buffer.nil?) || @quit
           case next_record_type_in_buffer
             when :heartbeat
               process_next = process_heartbeat
