@@ -45,5 +45,31 @@ price history for a given security
     #login
     #get_price_history
     #get_quote
+    #get_price_history
     #get_daily_price_history
-    #get_minute_price_history
+
+## Streaming
+
+    c = TDAmeritradeApi::Client.new
+    c.login
+    streamer = c.create_streamer
+    streamer.run(symbols: symbols, request_fields: [:volume, :last, :symbol, :quotetime, :tradetime]) do |data|
+       # Process the stream data here - this block gets called for every new chunk of data received from TDA
+       # See what's in the data hash to get the requested information streaming in about the stock
+    end
+
+The streamer also has the ability to read and write from a hard disk file for testing:
+
+    # This output_file attribute will cause the stream to be saved into a file as its being processed
+    streamer.output_file = '/Users/wkotzan/Development/gem-development/tda_stream_daemon/cache/stream20150205.binary'
+
+    # Run this code to read a stream from a presaved file
+    input_file = '~/stream20150213-should-have-WUBA-1010am.binary'
+    streamer = TDAmeritradeApi::Streamer::Streamer.new(read_from_file: input_file)
+
+
+## Release Notes
+
+### Version 1.0
+- Made it official (no longer beta)
+- Enhancement to the get_price_history function so that it can retrieve multiple tickers at a time
