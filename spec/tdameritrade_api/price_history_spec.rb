@@ -4,22 +4,23 @@ require 'tdameritrade_api'
 describe TDAmeritradeApi::Client do
   let(:client) { RSpec.configuration.client }
   let(:ticker_symbol) { 'PG' }
+  let(:ticker_symbols) { ['SNDK', 'WDC', 'MU'] }
 
   it "should populate certain instance variables after logging in" do
 
   end
 
   it "should retrieve the last 2 days of 30 min data" do
-    result = client.get_price_history(ticker_symbol, intervaltype: :minute, intervalduration: 30, periodtype: :day, period: 2)
+    result = client.get_price_history(ticker_symbol, intervaltype: :minute, intervalduration: 30, periodtype: :day, period: 2).first[:bars]
     expect(result).to be_a Array
     expect(result.length).to eq(26) # 13 half hour periods in a trading day (not including extended hours) times 2
     validate_price_bar(result.first)
   end
 
   it "should retrieve a date range of data" do
-    result = client.get_price_history(ticker_symbol, intervaltype: :daily, intervalduration: 1, startdate: Date.new(2014,7,22), enddate: Date.new(2014,7,25))
+    result = client.get_price_history(ticker_symbol, intervaltype: :daily, intervalduration: 1, startdate: Date.new(2014,7,22), enddate: Date.new(2014,7,25)).first[:bars]
     expect(result).to be_a Array
-    expect(result.length).to eq(4) # 13 half hour periods in a trading day (not including extended hours) times 2
+    expect(result.length).to eq(4)
     validate_price_bar(result.first)
   end
 
@@ -30,6 +31,23 @@ describe TDAmeritradeApi::Client do
     expect(result).to be_a Array
     expect(result.length).to eq(1)
     validate_price_bar(result.first)
+  end
+
+  it "should be able to get the recent price history for multiple symbols at a time" do
+    result = client.get_price_history(ticker_symbols, intervaltype: :daily, intervalduration: 1, startdate: Date.new(2015,2,2), enddate: Date.new(2015,2,12))
+    #=> [
+    # {:symbol=>'SNDK', :bars=>[{:open=>..., :high=>..., ..., ...},{:open=>...}]},
+    # {:symbol=>'WDC', :bars=>...},
+    # {:symbol=>'MU', :bars=>...}
+    # ]
+
+    expect(result).to be_a Array
+    expect(result.length).to eq(3)
+
+    first_result = result[0]
+    expect(first_result).to have_key :symbol
+    expect(first_result).to have_key :bars
+    validate_price_bar(first_result[:bars].first)
   end
 
   it "should not be able to get any data unless logged in" do

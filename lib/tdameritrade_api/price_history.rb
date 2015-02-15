@@ -35,33 +35,41 @@ module TDAmeritradeApi
       w = open(tmp_file, 'wb')
       w.write(response.body)
       w.close
+
       rd = open(tmp_file, 'rb')
 
+      result = Array.new
       header = PriceHistoryHeader.read(rd)
-      #puts "#{header.symbol}: #{header.bar_count} bars"
+      header.symbol_count.times do |count|
+        symbol_data_raw = PriceHistorySymbolData.read(rd)
+        symbol_data = { symbol: symbol_data_raw.symbol }
 
-      if header.error_code != 0
-        return [{ :error => "#{header.error_code}: #{header.error_text}" }]
+        if symbol_data_raw.error_code == 0
+          prices = Array.new
+          while rd.read(2).bytes != [255,255]   # The terminator char is "\xFF\xFF"
+            rd.seek(-2, IO::SEEK_CUR)
+            bar = PriceHistoryBarRaw.read(rd)
+            prices << {
+                open: bar.open.round(2),
+                high: bar.high.round(2),
+                low: bar.low.round(2),
+                close: bar.close.round(2),
+                volume: bar.volume.round(2), # volume is presented in 100's, per TD Ameritrade API spec
+                timestamp: Time.at(bar.timestampint/1000),
+                interval: :day
+            }
+            #puts "#{bar.open} #{bar.high} #{bar.low} #{bar.close} #{Time.at(bar.timestampint/1000)}"
+          end
+          symbol_data[:bars] = prices
+
+        else
+          symbol_data[:error_code] = symbol_data_raw.error_code
+          symbol_data[:error_text] = symbol_data_raw.error_text
+        end
+
+        result << symbol_data
       end
-
-      prices = Array.new
-      while rd.read(2).bytes != [255,255]   # The terminator char is "\xFF\xFF"
-        rd.seek(-2, IO::SEEK_CUR)
-        bar = PriceHistoryBarRaw.read(rd)
-        prices << {
-            open: bar.open.round(2),
-            high: bar.high.round(2),
-            low: bar.low.round(2),
-            close: bar.close.round(2),
-            volume: bar.volume.round(2), # volume is presented in 100's, per TD Ameritrade API spec
-            timestamp: Time.at(bar.timestampint/1000),
-            interval: :day
-        }
-        #puts "#{bar.open} #{bar.high} #{bar.low} #{bar.close} #{Time.at(bar.timestampint/1000)}"
-      end
-
-      prices
-
+      result
     rescue Exception => e
       raise TDAmeritradeApiError, "error in get_price_history() - #{e.message}" if !e.is_ctrl_c_exception?
     end
@@ -70,63 +78,7 @@ module TDAmeritradeApi
     # It adds convenience because you can just specify a begin_date and end_date rather than all of the
     # TDAmeritrade API parameters.
     def get_daily_price_history(symbol, start_date=Date.new(2001,1,2), end_date=todays_date)
-      get_price_history(symbol, intervaltype: :daily, intervalduration: 1, startdate: start_date, enddate: end_date)
-    end
-
-    # +get_minute_price_history+ will soon be a legacy function. use +get_price_history+ instead
-    def get_minute_price_history(symbol, interval={})
-      if interval.has_key?(:days_back) then
-        # for it to get today's data, you have to set the enddate parameter to today
-        # See forum post #10597
-        uri = URI.parse("https://apis.tdameritrade.com/apps/100/PriceHistory?source=#{@source_id}&requestidentifiertype=SYMBOL&requestvalue=#{symbol}&intervaltype=MINUTE&intervalduration=1&periodtype=DAY&period=#{days_back}&extended=true&enddate=#{todays_date}")
-      else
-        begin_date = interval[:begin_date] || '20140101'
-        end_date = interval[:end_date] || todays_date
-        uri = URI.parse("https://apis.tdameritrade.com/apps/100/PriceHistory?source=#{@source_id}&requestidentifiertype=SYMBOL&requestvalue=#{symbol}&intervaltype=MINUTE&intervalduration=1&extended=true&startdate=#{begin_date}&enddate=#{end_date}")
-      end
-
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      request = Net::HTTP::Get.new uri
-      request['Set-Cookie'] = "JSESSIONID=#{@session_id}"
-      response = http.request request
-
-
-
-      if response.code != "200"
-        return [{ :error => "#{response.code}: #{response.body.encode('utf-8')}"}]
-      end
-
-      tmp_file=File.join(Dir.tmpdir, "minute_prices.binary")
-      download_file = open(tmp_file, 'wb')
-      download_file.write(response.body)
-      download_file.close
-      rd = open(tmp_file, 'rb')
-
-      header = PriceHistoryHeader.read(rd)
-      #puts "#{header.symbol}: #{header.bar_count} bars"
-
-      if header.error_code != 0
-        return [{ :error => "#{header.error_code}: #{header.error_text}" }]
-      end
-
-      prices = Array.new
-      while rd.read(2).bytes != [255,255]   # The terminator char is "\xFF\xFF"
-        rd.seek(-2, IO::SEEK_CUR)
-        bar = PriceHistoryBarRaw.read(rd)
-        prices << {
-            open: bar.open.round(2),
-            high: bar.high.round(2),
-            low: bar.low.round(2),
-            close: bar.close.round(2),
-            volume: bar.volume,
-            timestamp: Time.at(bar.timestampint/1000),
-            interval: :minute
-        }
-        #puts "#{bar.open} #{bar.high} #{bar.low} #{bar.close} #{Time.at(bar.timestampint/1000)}"
-      end
-
-      prices
+      get_price_history(symbol, intervaltype: :daily, intervalduration: 1, startdate: start_date, enddate: end_date).first[:bars]
     end
 
     # this currently only works on stocks
@@ -170,28 +122,7 @@ module TDAmeritradeApi
             change: q.css('change').text,
             change_percent: q.css('change-percent').text
         }
-        #puts "#{q.css('symbol').text}: #{q.css('last').text}"
       end
-
-
-      #prices = Array.new
-      #while rd.read(2).bytes != [255,255]   # The terminator char is "\xFF\xFF"
-      #rd.seek(-2, IO::SEEK_CUR)
-      #quote = QuoteResult.read(rd)
-      #quotes << {
-      #    result: quote.result,
-      #
-      #
-      #    open: bar.open.round(2),
-      #    high: bar.high.round(2),
-      #    low: bar.low.round(2),
-      #    close: bar.close.round(2),
-      #    volume: bar.volume,
-      #    timestamp: Time.at(bar.timestampint/1000),
-      #    interval: :minute
-      #}
-      #puts "#{bar.open} #{bar.high} #{bar.low} #{bar.close} #{Time.at(bar.timestampint/1000)}"
-      #end
 
       quotes
     end
@@ -224,7 +155,14 @@ module TDAmeritradeApi
     end
 
     def build_price_history_request_params(symbol, options)
-      req = {source: @source_id, requestidentifiertype: 'SYMBOL', requestvalue: symbol}.merge(options)
+      req = {source: @source_id, requestidentifiertype: 'SYMBOL'}.merge(options)
+
+      if symbol.kind_of? String
+        req[:requestvalue] = symbol
+      elsif symbol.kind_of? Array
+        req[:requestvalue] = symbol.inject { |symbol, join| join = join + ", #{symbol}" }
+      end
+
       req[:startdate]=date_s(req[:startdate]) if req.has_key?(:startdate) && req[:startdate].is_a?(Date)
       req[:enddate]=date_s(req[:enddate]) if req.has_key?(:enddate) && req[:enddate].is_a?(Date)
       req[:intervaltype]=req[:intervaltype].to_s.upcase if req[:intervaltype]

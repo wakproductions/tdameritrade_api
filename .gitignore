@@ -5,6 +5,7 @@
 .yardoc
 .idea
 .DS_STORE
+spec/test_data/sample_stream_rspec_test.binary
 Gemfile.lock
 InstalledFiles
 _yardoc

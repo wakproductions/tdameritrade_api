@@ -4,6 +4,9 @@ module TDAmeritradeApi
   module BinDataTypes
     class PriceHistoryHeader < BinData::Record
       int32be    :symbol_count
+    end
+
+    class PriceHistorySymbolData < BinData::Record
       int16be    :symbol_length
       string     :symbol, :read_length=>:symbol_length
       int8be     :error_code
