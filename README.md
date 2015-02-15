@@ -1,4 +1,4 @@
-# TD Ameritrade API gem for Ruby (alpha)
+# TD Ameritrade API gem for Ruby
 
 This is a gem for connecting to the TD Ameritrade API.
 
