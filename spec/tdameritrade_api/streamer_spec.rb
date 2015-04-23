@@ -31,7 +31,7 @@ describe TDAmeritradeApi::Client do
       i = 1
       streamer = TDAmeritradeApi::Streamer::Streamer.new(read_from_file: mock_data_file)
       streamer.run do |data|
-        data.convert_time_columns
+        data.convert_time_columns Date.new(2014,07,16) # Date that /spec/test_data/sample_stream_rspec_test.binary was created. Must update this date if you change the sample file bc of daylight savings time adjustment.
         case data.stream_data_type
           when :heartbeat
             pout "Heartbeat: #{data.timestamp}"
@@ -65,8 +65,8 @@ describe TDAmeritradeApi::Client do
     expect(first_stream_data.columns[:tick]).to eql("\x00")
     expect(first_stream_data.columns[:low]).to eql(47.77)
     expect(first_stream_data.columns[:close]).to eql(47.81)
-    expect(first_stream_data.columns[:tradetime_ruby]).to eql(Time.parse("19:17:19 -0500"))
-    expect(first_stream_data.columns[:quotetime_ruby]).to eql(Time.parse("20:00:00 -0500"))
+    expect(first_stream_data.columns[:tradetime_ruby]).to eql(Time.parse("2014-07-16 19:17:19 -0400"))
+    expect(first_stream_data.columns[:quotetime_ruby]).to eql(Time.parse("2014-07-16 20:00:00 -0400"))
 
   end
 
@@ -122,14 +122,14 @@ describe TDAmeritradeApi::Client do
         streamer.quit if i > 5 # We only need a few records
       end
 
-      expect(has_heartbeat_message).to be_true
-      expect(has_successful_connect_message).to be_true
-      expect(has_quote_stream_message).to be_true
-      expect(File.exists?(file_name)).to be_true
+      expect(has_heartbeat_message).to be_truthy
+      expect(has_successful_connect_message).to be_truthy
+      expect(has_quote_stream_message).to be_truthy
+      expect(File.exists?(file_name)).to be_truthy
       expect(File.size(file_name)).to be > 10 # should have more than 10 bytes of data (arbitrary small number)
     else
       # this is only if we are skipping the test
-      expect(true).to be_true
+      expect(true).to be_truthy
     end
 
 

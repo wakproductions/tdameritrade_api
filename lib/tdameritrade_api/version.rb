@@ -1,3 +1,3 @@
 module TDAmeritradeApi
-  VERSION = "1.0.20150215"
+  VERSION = "1.0.20150422"
 end

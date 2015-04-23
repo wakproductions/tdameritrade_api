@@ -18,10 +18,11 @@ Gem::Specification.new do |spec|
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ["lib"]
 
-  spec.add_development_dependency "bundler", "~> 1.5"
-  spec.add_development_dependency "rake"
-  spec.add_development_dependency "bindata", "~> 1.8"
-  spec.add_development_dependency "rspec", "~> 2.14"
-  spec.add_development_dependency "httparty", "~> 0.13"
-  spec.add_development_dependency "activesupport", "~> 4.0.0"
+  spec.add_development_dependency "rspec", "~> 3.2"
+  spec.add_dependency "bundler", "~> 1.5"
+  spec.add_dependency "rake"
+  spec.add_dependency "bindata", "~> 1.8"
+  spec.add_dependency "httparty", "~> 0.13"
+  spec.add_dependency "activesupport", "~> 4.0.0"
+  spec.add_dependency "nokogiri", "~> 1.6"
 end

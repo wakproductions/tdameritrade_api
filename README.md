@@ -67,6 +67,11 @@ The streamer also has the ability to read and write from a hard disk file for te
     input_file = '~/stream20150213-should-have-WUBA-1010am.binary'
     streamer = TDAmeritradeApi::Streamer::Streamer.new(read_from_file: input_file)
 
+## Contributions
+
+If you would like to make a contribution, please submit a pull request. Feel free to email me Winston Kotzan
+at wak@wakproductions.com with any feature requests, bug reports, or feedback.
+
 
 ## Release Notes
 
