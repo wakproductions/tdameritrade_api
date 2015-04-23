@@ -39,14 +39,12 @@ call the methods you need.
 
 ## Currently Supported Methods
 
-The only API features really supported right now are the ability to capture real time quotes and
-price history for a given security
+The only API features really supported right now are the ability to capture real time quotes,
+price history, and streaming of Level 1 quotes.
 
-    #login
-    #get_price_history
-    #get_quote
-    #get_price_history
-    #get_daily_price_history
+    login
+    get_price_history   # retrieves historical data
+    get_quote           # gets realtime snapshots of quotes
 
 ## Streaming
 
