@@ -19,6 +19,16 @@ module TDAmeritradeApi
       end
     end
 
+    # IMPORTANT NOTE (4/23/15):
+    # When using currency in Ruby, it is recommended to use BigDecimal instead of
+    # float types due to rounding errors with the float type. I have discovered that in
+    # Ruby 2.2 you may have issues with ActiveRecord if your database stores these values
+    # as a decimal type because this gem outputs the close, high, low, open, and volume
+    # values in float type. The fix is either to have rounding through a precision value
+    # in your database field or to typecast the output of TDAmeritradeAPI gem to BigDecimal.
+    # I currently have no plans to change the code here since a 4-byte float is what is
+    # used by TD Ameritrade's system and I want to keep the output of this gem consistent
+    # with the specs used by TDA.
     class PriceHistoryBarRaw < BinData::Record
       float_be    :close   # may have to round this on a 64 bit system
       float_be    :high    # may have to round this on a 64 bit system
