@@ -5,3 +5,5 @@ rvm:
 gemfile:
   - Gemfile
 script: "rspec"
+notifications:
+  email: false

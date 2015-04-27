@@ -1,6 +1,6 @@
 # TD Ameritrade API gem for Ruby
 
-[![Code Climate](https://codeclimate.com/github/wakproductions/tdameritrade_api/badges/gpa.svg)](https://codeclimate.com/github/wakproductions/tdameritrade_api)
+[![Build Status](https://travis-ci.org/wakproductions/tdameritrade_api.svg?branch=master)](https://travis-ci.org/wakproductions/tdameritrade_api)[![Code Climate](https://codeclimate.com/github/wakproductions/tdameritrade_api/badges/gpa.svg)](https://codeclimate.com/github/wakproductions/tdameritrade_api)
 
 This is a gem for connecting to the TD Ameritrade API.
 
