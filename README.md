@@ -26,10 +26,10 @@ To use this, you need to have 3 environment variables set:
 
 ## Basic Usage
 
-To connect to the TD Ameritrade API using this gem, create an instance of TDAmeritrade::Client and then
+To connect to the TD Ameritrade API using this gem, create an instance of TDAmeritradeApi::Client and then
 call the methods you need.
 
-    c = TDAmeritrade::Client.new
+    c = TDAmeritradeApi::Client.new
     c.login
     #=> true
 
