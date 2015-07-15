@@ -39,7 +39,11 @@ module TDAmeritradeApi
 
     def login_success?
       return false if @login_response.nil?
-      login_result = @login_response.scan(/<result>(.*)<\/result>/).first.first
+      begin
+        login_result = @login_response.scan(/<result>(.*)<\/result>/).first.first
+      rescue
+        return false
+      end
       login_result && (login_result == "OK")
     end
 
