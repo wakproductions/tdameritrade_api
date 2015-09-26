@@ -6,12 +6,14 @@ require 'tdameritrade_api/exception'
 require 'tdameritrade_api/price_history'
 require 'tdameritrade_api/streamer'
 require 'tdameritrade_api/watchlist'
+require 'tdameritrade_api/equity_order'
 
 module TDAmeritradeApi
   class Client
     include PriceHistory
     include Streamer
     include Watchlist
+    include EquityOrder
 
     attr_accessor :source_id, :user_id, :password
     attr_reader :login_response, :session_id, :accounts

@@ -1,6 +1,19 @@
 require "bundler/gem_tasks"
 require 'tdameritrade_api'
 
+task :test_equity_order do
+  c = TDAmeritradeApi::Client.new
+  c.login
+
+  my_trade = {:quantity => 100, 
+  :action => :buy, 
+  :ordtype => :limit, 
+  :price => 1, 
+  :clientorderid => 20150925140834,
+  :expire => :day}
+  c.submit_order('IBM', my_trade)
+end
+
 task :perform_action do
   c = TDAmeritradeApi::Client.new
   c.login
