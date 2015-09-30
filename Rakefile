@@ -26,3 +26,13 @@ task :perform_action do
   end
   of.close
 end
+
+task :test_bp do
+  c = TDAmeritradeApi::Client.new
+  c.login
+
+  options = {:type => 'p', 
+  :suppressquote => 'true'}
+  bp = c.get_balances_and_positions(options)
+  p bp
+end
