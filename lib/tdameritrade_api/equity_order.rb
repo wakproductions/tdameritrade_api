@@ -8,13 +8,22 @@ module TDAmeritradeApi
     ROUTING_TYPE=[:auto, :inet, :ecn_arca]
     SPINSTRUCTIONS_TYPE=[:none, :fok, :aon, :dnr, :aon_dnr]
 
+    # for conditional orders    
+    CONDITIONALORDER_URL='https://apis.tdameritrade.com/apps/100/ConditionalEquityTrade'
+    ORDER_TICKET=[:oca, :ota, :ott, :otoca, :otota]
+
     # +submit_order+ submit equity order
     # +options+ may contain any of the params outlined in the API docs
-    def submit_order(symbol, order_info={})
-      validate_order_options order_info
+    def submit_order(symbol, order_info, conditional=false)
+      validate_order_options(order_info, conditional)
       request_params = build_order_request_params(symbol, order_info)
 
-      uri = URI.parse EQUITYORDER_URL
+      if !conditional then
+        uri = URI.parse EQUITYORDER_URL
+      else
+        uri = URI.parse CONDITIONALORDER_URL
+      end
+      
       uri.query = URI.encode_www_form(request_params)
 
       response = HTTParty.get(uri, headers: {'Cookie' => "JSESSIONID=#{@session_id}"}, timeout: 10)
@@ -55,20 +64,30 @@ module TDAmeritradeApi
       date.strftime('%Y%m%d')
     end
 
-    def validate_order_options(options)
-      if !(options.has_key?(:quantity) && options[:quantity].is_a?(Integer))
-        raise TDAmeritradeApiError, "You must provide a quantity: #{options[:quantity]}"
+    def validate_order_options(options, conditional)
+      if (conditional && !(options.has_key?(:totlegs) && 1 < options[:totlegs] < 4))
+        raise TDAmeritradeApiError, "For conditional orders totlegs must be 2 or 3: #{options[:totlegs]}"
       end
-
-      if options.has_key?(:clientorderid) && !options[:clientorderid].is_a?(Integer)
-        raise TDAmeritradeApiError, "Option clientorderid must be Integer: #{options[:clientorderid]}"
-      end
-
-      ## TODO Add more:
       
-      if !options.has_key?(:action) || ACTION_TYPE.index(options[:action]).nil?
-        raise TDAmeritradeApiError, "Invalid equity trade option for action: #{options[:action]}"
-      end
+      (0..3).each do |leg|
+          next if conditional && leg == 0
+          next if !conditional && leg > 0
+          subscript = leg == 0 ? "" : leg
+          
+          if !(options.has_key?(:"quantity#{subscript}") && options[:"quantity#{subscript}"].is_a?(Integer))
+            raise TDAmeritradeApiError, "You must provide a quantity#{subscript}: #{options[:"quantity#{subscript}"]}"
+          end
+    
+          if options.has_key?(:clientorderid) && !options[:clientorderid].is_a?(Integer)
+            raise TDAmeritradeApiError, "Option clientorderid must be Integer: #{options[:clientorderid]}"
+          end
+    
+          ## TODO Add more:
+          
+          if !options.has_key?(:"action#{subscript}") || ACTION_TYPE.index(options[:"action#{subscript}"]).nil?
+            raise TDAmeritradeApiError, "Invalid equity trade option for action#{subscript}: #{options[:"action#{subscript}"]}"
+          end
+       end
 
     end
 

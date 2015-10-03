@@ -5,13 +5,44 @@ task :test_equity_order do
   c = TDAmeritradeApi::Client.new
   c.login
 
-  my_trade = {:quantity => 100, 
+  my_trade = {:quantity => 300, 
   :action => :buy, 
   :ordtype => :limit, 
   :price => 1, 
   :clientorderid => 20150925140834,
   :expire => :day}
-  c.submit_order('IBM', my_trade)
+  c.submit_order('TNA', my_trade)
+end
+
+task :test_conditional_order do
+  c = TDAmeritradeApi::Client.new
+  c.login
+
+  my_trade = {
+    :clientorderid => 20150925140834,
+    :ordticket => :otoca,
+    :totlegs => 3,
+    
+    :quantity1 => 300, 
+    :action1 => :buy, 
+    :ordtype1 => :limit, 
+    :price1 => 2, 
+    :expire1 => :day,
+    
+    :quantity2 => 300, 
+    :action2 => :sell, 
+    :ordtype2 => :limit, 
+    :price2 => 3, 
+    :expire2 => :day,
+    
+    :quantity3 => 300, 
+    :action3 => :sell, 
+    :ordtype3 => :stop_market, 
+    :price3 => 1, 
+    :expire3 => :day,
+    
+    }
+  c.submit_order('TNA', my_trade, true)
 end
 
 task :perform_action do
