@@ -12,11 +12,16 @@ module TDAmeritradeApi
     CONDITIONALORDER_URL='https://apis.tdameritrade.com/apps/100/ConditionalEquityTrade'
     ORDER_TICKET=[:oca, :ota, :ott, :otoca, :otota]
 
+    EDITORDER_URL='https://apis.tdameritrade.com/apps/100/EditOrder'
+
+    CANCELORDER_URL='https://apis.tdameritrade.com/apps/100/OrderCancel'
+
     # +submit_order+ submit equity order
     # +options+ may contain any of the params outlined in the API docs
-    def submit_order(symbol, order_info, conditional=false)
+    def submit_order(order_info, conditional=false)
       validate_order_options(order_info, conditional)
-      request_params = build_order_request_params(symbol, order_info)
+      request_params = build_order_request_params(order_info)
+      request_params[:symbol] = request_params[:symbol].to_s.upcase 
 
       if !conditional then
         uri = URI.parse EQUITYORDER_URL
@@ -24,7 +29,9 @@ module TDAmeritradeApi
         uri = URI.parse CONDITIONALORDER_URL
       end
       
-      uri.query = URI.encode_www_form(request_params)
+      built_query = URI.encode_www_form(request_params)
+      uri.query = built_query.gsub!('&','~').gsub!('source=NARS~','source=NARS&orderstring=')
+      p uri.query
 
       response = HTTParty.get(uri, headers: {'Cookie' => "JSESSIONID=#{@session_id}"}, timeout: 10)
       if response.code != 200
@@ -39,10 +46,47 @@ module TDAmeritradeApi
       raise TDAmeritradeApiError, "error in submit_order() - #{e.message}" if !e.is_ctrl_c_exception?
     end
     
-    def edit_order(order_options)
+    def edit_order(order_info, conditional=false)
+      # validate_order_options(order_info, conditional)
+      request_params = build_order_request_params(order_info)
+
+      uri = URI.parse EDITORDER_URL
+
+      built_query = URI.encode_www_form(request_params)
+      uri.query = built_query.gsub!('&','~').gsub!('source=NARS~','source=NARS&orderstring=')
+      p uri
+
+      response = HTTParty.get(uri, headers: {'Cookie' => "JSESSIONID=#{@session_id}"}, timeout: 10)
+      if response.code != 200
+        raise TDAmeritradeApiError, "HTTP response #{response.code}: #{response.body}"
+      end
+
+    parsed_response = Nokogiri::XML::Document.parse response.body
+    
+    p response.body
+
+    rescue Exception => e
+      raise TDAmeritradeApiError, "error in edit_order() - #{e.message}" if !e.is_ctrl_c_exception?
     end
 
-    def cancel_order(order_options)
+    def cancel_order(order_info)
+      request_params = build_order_request_params(order_info)
+
+      uri = URI.parse CANCELORDER_URL
+
+      uri.query = URI.encode_www_form(request_params)
+
+      response = HTTParty.get(uri, headers: {'Cookie' => "JSESSIONID=#{@session_id}"}, timeout: 10)
+      if response.code != 200
+        raise TDAmeritradeApiError, "HTTP response #{response.code}: #{response.body}"
+      end
+
+    parsed_response = Nokogiri::XML::Document.parse response.body
+    
+    p response.body
+
+    rescue Exception => e
+      raise TDAmeritradeApiError, "error in cancel_order() - #{e.message}" if !e.is_ctrl_c_exception?
     end
     
     def get_order_status(order_options)
@@ -65,7 +109,7 @@ module TDAmeritradeApi
     end
 
     def validate_order_options(options, conditional)
-      if (conditional && !(options.has_key?(:totlegs) && 1 < options[:totlegs] < 4))
+      if (conditional && !(options.has_key?(:totlegs) && 1 < options[:totlegs] && options[:totlegs] < 4))
         raise TDAmeritradeApiError, "For conditional orders totlegs must be 2 or 3: #{options[:totlegs]}"
       end
       
@@ -91,12 +135,10 @@ module TDAmeritradeApi
 
     end
 
-    def build_order_request_params(symbol, options)
+    def build_order_request_params(options)
       req = {source: @source_id}.merge(options)
       
       req[:accountid] = @accounts[0][:account_id]
-
-      req[:symbol] = symbol.to_s.upcase
 
       req
     end
