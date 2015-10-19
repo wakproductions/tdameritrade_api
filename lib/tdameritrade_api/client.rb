@@ -7,7 +7,6 @@ require 'tdameritrade_api/exception'
 require 'tdameritrade_api/price_history'
 require 'tdameritrade_api/streamer'
 require 'tdameritrade_api/watchlist'
-require 'tdameritrade_api/equity_order'
 require 'tdameritrade_api/balances_and_positions'
 
 module TDAmeritradeApi
@@ -15,7 +14,6 @@ module TDAmeritradeApi
     include PriceHistory
     include Streamer
     include Watchlist
-    include EquityOrder
     include BalancesAndPositions
 
     attr_accessor :source_id, :user_id, :password
