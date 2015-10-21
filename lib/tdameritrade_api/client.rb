@@ -1,17 +1,20 @@
 require 'net/http'
 require 'openssl'
 require 'httparty'
+require 'active_support/core_ext/hash/conversions'
 require 'tdameritrade_api/bindata_types'
 require 'tdameritrade_api/exception'
 require 'tdameritrade_api/price_history'
 require 'tdameritrade_api/streamer'
 require 'tdameritrade_api/watchlist'
+require 'tdameritrade_api/balances_and_positions'
 
 module TDAmeritradeApi
   class Client
     include PriceHistory
     include Streamer
     include Watchlist
+    include BalancesAndPositions
 
     attr_accessor :source_id, :user_id, :password
     attr_reader :login_response, :session_id, :accounts
