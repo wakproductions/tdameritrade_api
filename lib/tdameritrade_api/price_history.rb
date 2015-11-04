@@ -106,7 +106,9 @@ module TDAmeritradeApi
       q = Nokogiri::XML::Document.parse response.body
       q.css('quote').each do |q|
         quotes << {
+            error: q.css('error').text,
             symbol: q.css('symbol').text,
+            description: q.css('description').text,
             bid: q.css('bid').text,
             ask: q.css('ask').text,
             bid_ask_size: q.css('bid-ask-size').text,
@@ -118,7 +120,11 @@ module TDAmeritradeApi
             low: q.css('low').text,
             close: q.css('close').text,
             volume: q.css('volume').text,
+            year_high: q.css('year-high').text,
+            year_low: q.css('year-low').text,
             real_time: q.css('real-time').text,
+            exchange: q.css('exchange').text,
+            asset_type: q.css('asset-type').text,
             change: q.css('change').text,
             change_percent: q.css('change-percent').text
         }

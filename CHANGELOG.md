@@ -1,3 +1,12 @@
+### v1.1.1
+
+Added missing fields to the output of #get_quote, the real-time quote retrieval method. Now includes
+error (if any), description, year high/low, exchange, asset type.
+
+### v1.1.0
+
+Added ability to retrieve account balances and positions.
+
 ### v1.0.20150422 Known Issues
 
 steamer_spec.rb has a flickering test in that it fails outside of the US/Eastern time zone. The problem
