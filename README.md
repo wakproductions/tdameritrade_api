@@ -1,9 +1,3 @@
-## WaRNiNG - This branch is work in PrOGResS
-
-If you stumbled across this, you probably don't want to use this now. Check out the original branch : 
-
-https://github.com/wakproductions/tdameritrade_api
-
 # TD Ameritrade API gem for Ruby
 
 [![Build Status](https://travis-ci.org/wakproductions/tdameritrade_api.svg?branch=master)](https://travis-ci.org/wakproductions/tdameritrade_api) [![Code Climate](https://codeclimate.com/github/wakproductions/tdameritrade_api/badges/gpa.svg)](https://codeclimate.com/github/wakproductions/tdameritrade_api)
