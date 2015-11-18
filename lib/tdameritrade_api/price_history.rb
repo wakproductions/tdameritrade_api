@@ -98,6 +98,7 @@ module TDAmeritradeApi
       begin
         response = http.request request
       rescue
+        # TODO set this up to re-raise the exception
         puts "error here in api- get_quote function"
       end
       #puts response.body
