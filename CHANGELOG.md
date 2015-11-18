@@ -1,3 +1,7 @@
+### v1.2.0
+
+Added feature to view, create, and edit watchlists available in ThinkOrSwim.
+
 ### v1.1.1
 
 Added missing fields to the output of #get_quote, the real-time quote retrieval method. Now includes

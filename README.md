@@ -66,6 +66,16 @@ The streamer also has the ability to read and write from a hard disk file for te
     # Run this code to read a stream from a presaved file
     input_file = '~/stream20150213-should-have-WUBA-1010am.binary'
     streamer = TDAmeritradeApi::Streamer::Streamer.new(read_from_file: input_file)
+    
+## Watchlists (see lib/watchlist.rb for accepted parameters)
+
+    get_watchlists
+    create_watchlist
+    edit_watchlist
+
+## Balances and Positions (see lib/balances_and_positions.rb for accepted parameters)
+
+    get_balances_and_positions
 
 ## Contributions
 
@@ -75,5 +85,4 @@ at wak@wakproductions.com with any feature requests, bug reports, or feedback.
 
 ## Release Notes
 
-### Version 1.1 Alpha
-- Adding balances, positions and trade modules
+See CHANGELOG.md
