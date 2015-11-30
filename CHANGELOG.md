@@ -1,3 +1,7 @@
+### v1.2.1
+
+Removed accidental binding.pry statements
+
 ### v1.2.0
 
 Added feature to view, create, and edit watchlists available in ThinkOrSwim.

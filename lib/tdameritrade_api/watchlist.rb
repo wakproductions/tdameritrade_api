@@ -96,13 +96,11 @@ module TDAmeritradeApi
         EDIT_WATCHLIST_URL << "?source=#{@source_id}&listid=#{opts[:listid]}&symbollist=#{opts[:symbollist]}"
       )
 
-      binding.pry
       response = HTTParty.get(uri, headers: {'Cookie' => "JSESSIONID=#{@session_id}"}, timeout: DEFAULT_TIMEOUT)
       if response.code != 200
         fail "HTTP response #{response.code}: #{response.body}"
       end
 
-      binding.pry
       w = Nokogiri::XML::Document.parse response.body
       result = {
         result:      w.css('result').text,
