@@ -92,11 +92,17 @@ module TDAmeritradeApi
       opts[:symbollist] = opts[:symbollist].join(',') if opts[:symbollist].is_a? Array
       #request_params = { source: @source_id }.merge(opts) #TODO write a method to build params using this
 
+      query = { listid: opts[:listid], symbollist: opts[:symbollist] }
       uri = URI.encode(
-        EDIT_WATCHLIST_URL << "?source=#{@source_id}&listid=#{opts[:listid]}&symbollist=#{opts[:symbollist]}"
+        EDIT_WATCHLIST_URL << "?source=#{@source_id}"
       )
 
-      response = HTTParty.get(uri, headers: {'Cookie' => "JSESSIONID=#{@session_id}"}, timeout: DEFAULT_TIMEOUT)
+      response = HTTParty.post(
+        uri,
+        headers: {'Cookie' => "JSESSIONID=#{@session_id}"},
+        query: query,
+        timeout: DEFAULT_TIMEOUT
+      )
       if response.code != 200
         fail "HTTP response #{response.code}: #{response.body}"
       end
