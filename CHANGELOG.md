@@ -1,6 +1,10 @@
+### v1.2.2
+
+Changed #edit_watchlist to send parameters as POST vs GET to avoid `Request-URI Too Large` error.
+
 ### v1.2.1
 
-Removed accidental binding.pry statements
+Removed accidental binding.pry statements.
 
 ### v1.2.0
 
